@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Shape } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
+import { RedrawCanvas } from "./RedrawCanvas";
+import { DrawShapes } from "./DrawShapes";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,30 +18,35 @@ export function Canvas() {
     if (!ctx) {
       return;
     }
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      RedrawCanvas(ctx, shapes);
+    };
 
-    shapes.forEach((shape) => {
-      if (shape.type === "rectangle") {
-        ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
-      } else if (shape.type === "circle") {
-        ctx.beginPath();
-        ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.closePath();
-      }
-    });
-  }, [canvasRef, shapes]);
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, [shapes]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const startX = e.clientX;
     const startY = e.clientY;
     let currentShape: Shape | null = null;
     const handleMouseMove = (e: MouseEvent) => {
-      const width = e.clientX - startX;
-      const height = e.clientY - startY;
-      const radius = Math.sqrt(width * width + height * height);
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      const currentX = e.clientX;
+      const currentY = e.clientY;
+      const width = currentX - startX;
+      const height = currentY - startY;
 
       switch (selectedTool) {
         case "rectangle":
@@ -54,11 +61,15 @@ export function Canvas() {
           };
           break;
         case "circle":
+          const radius = Math.sqrt(width * width + height * height) / 2;
+          const circleX = startX + Math.sign(width) * radius - radius;
+          const circleY = startY + Math.sign(height) * radius - radius;
+
           currentShape = {
             id: Date.now().toString(),
             type: "circle",
-            x: startX,
-            y: startY,
+            x: circleX,
+            y: circleY,
             radius,
             color: "black",
           };
@@ -67,55 +78,15 @@ export function Canvas() {
           break;
       }
 
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        return;
-      }
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        return;
-      }
-
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      shapes.forEach((shape) => {
-        if (shape.type === "rectangle") {
-          ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
-        } else if (shape.type === "circle") {
-          ctx.beginPath();
-          ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.closePath();
-        }
-      });
-
-      if (currentShape) {
-        if (currentShape.type === "rectangle") {
-          ctx.strokeRect(
-            currentShape.x,
-            currentShape.y,
-            currentShape.width,
-            currentShape.height
-          );
-        } else if (currentShape.type === "circle") {
-          ctx.beginPath();
-          ctx.arc(
-            currentShape.x,
-            currentShape.y,
-            currentShape.radius,
-            0,
-            Math.PI * 2
-          );
-          ctx.stroke();
-          ctx.closePath();
-        }
-      }
+      RedrawCanvas(ctx, shapes);
+      DrawShapes(ctx, currentShape!);
     };
     const handleMouseUp = () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
       if (currentShape) {
-        const shapeToAdd = currentShape;
-        setShapes((prevShapes) => [...prevShapes, shapeToAdd]);
+        setShapes((prevShapes) => [...prevShapes, currentShape!]);
       }
     };
     document.addEventListener("mousemove", handleMouseMove);
@@ -123,8 +94,8 @@ export function Canvas() {
   };
   return (
     <div className="bg-white h-screen w-screen">
-      <div className="flex justify-center z-50">
-        <div className="flex bg-[#232329] m-2 rounded-lg">
+      <div className="flex justify-center">
+        <div className="flex bg-[#232329] m-2 rounded-lg z-50">
           <div className="m-4">
             <button
               className={` ${
@@ -156,7 +127,7 @@ export function Canvas() {
       <canvas
         ref={canvasRef}
         onMouseDown={handleMouseDown}
-        className="z-0"
+        className="absolute top-0 left-0 w-full h-full cursor-crosshair z-0"
       ></canvas>
     </div>
   );
