@@ -123,17 +123,41 @@ export function Canvas() {
   };
   return (
     <div className="bg-white h-screen w-screen">
-      <div className="flex justify-center">
-        <div className="m-4 bg-black">
-          <button onClick={() => setSelectedTool("rectangle")}>
-            Rectangle
-          </button>
-        </div>
-        <div className="m-4 bg-black">
-          <button onClick={() => setSelectedTool("circle")}>Circle</button>
+      <div className="flex justify-center z-50">
+        <div className="flex bg-[#232329] m-2 rounded-lg">
+          <div className="m-4">
+            <button
+              className={` ${
+                selectedTool === "rectangle"
+                  ? "bg-[#403E6A] p-2 rounded-lg"
+                  : "p-2 rounded-lg"
+              }`}
+              onClick={() => {
+                setSelectedTool("rectangle");
+              }}
+            >
+              Rectangle
+            </button>
+          </div>
+          <div className="m-4">
+            <button
+              className={` ${
+                selectedTool === "circle"
+                  ? "bg-[#403E6A] p-2 rounded-lg"
+                  : "p-2 rounded-lg"
+              }`}
+              onClick={() => setSelectedTool("circle")}
+            >
+              Circle
+            </button>
+          </div>
         </div>
       </div>
-      <canvas ref={canvasRef} onMouseDown={handleMouseDown}></canvas>;
+      <canvas
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        className="z-0"
+      ></canvas>
     </div>
   );
 }
