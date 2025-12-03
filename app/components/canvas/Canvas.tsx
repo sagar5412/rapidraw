@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Shape } from "@/app/types/Shapes";
-
-type selectedShapes = "rectangle";
+import { selectedShapes } from "@/app/types/Shapes";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,6 +23,11 @@ export function Canvas() {
     shapes.forEach((shape) => {
       if (shape.type === "rectangle") {
         ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+      } else if (shape.type === "circle") {
+        ctx.beginPath();
+        ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.closePath();
       }
     });
   }, [canvasRef, shapes]);
@@ -35,13 +39,33 @@ export function Canvas() {
     const handleMouseMove = (e: MouseEvent) => {
       const width = e.clientX - startX;
       const height = e.clientY - startY;
-      currentShape = {
-        type: selectedTool,
-        x: startX,
-        y: startY,
-        width,
-        height,
-      };
+      const radius = Math.sqrt(width * width + height * height);
+
+      switch (selectedTool) {
+        case "rectangle":
+          currentShape = {
+            id: Date.now().toString(),
+            type: "rectangle",
+            x: startX,
+            y: startY,
+            width,
+            height,
+            color: "black",
+          };
+          break;
+        case "circle":
+          currentShape = {
+            id: Date.now().toString(),
+            type: "circle",
+            x: startX,
+            y: startY,
+            radius,
+            color: "black",
+          };
+          break;
+        default:
+          break;
+      }
 
       const canvas = canvasRef.current;
       if (!canvas) {
@@ -51,10 +75,16 @@ export function Canvas() {
       if (!ctx) {
         return;
       }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       shapes.forEach((shape) => {
         if (shape.type === "rectangle") {
           ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+        } else if (shape.type === "circle") {
+          ctx.beginPath();
+          ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.closePath();
         }
       });
 
@@ -66,6 +96,17 @@ export function Canvas() {
             currentShape.width,
             currentShape.height
           );
+        } else if (currentShape.type === "circle") {
+          ctx.beginPath();
+          ctx.arc(
+            currentShape.x,
+            currentShape.y,
+            currentShape.radius,
+            0,
+            Math.PI * 2
+          );
+          ctx.stroke();
+          ctx.closePath();
         }
       }
     };
@@ -82,6 +123,10 @@ export function Canvas() {
   };
   return (
     <div className="bg-white h-screen w-screen">
+      <div className="flex justify-center bg-black">
+        <button onClick={() => setSelectedTool("rectangle")}>Rectangle</button>
+        <button onClick={() => setSelectedTool("circle")}>Circle</button>
+      </div>
       <canvas ref={canvasRef} onMouseDown={handleMouseDown}></canvas>;
     </div>
   );
