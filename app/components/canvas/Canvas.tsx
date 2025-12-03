@@ -4,6 +4,7 @@ import { Shape } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { DrawShapes } from "./DrawShapes";
+import { HandleMouseDown } from "./HandleMouseDown";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -30,68 +31,12 @@ export function Canvas() {
     return () => window.removeEventListener("resize", resizeCanvas);
   }, [shapes]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let currentShape: Shape | null = null;
-    const handleMouseMove = (e: MouseEvent) => {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        return;
-      }
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        return;
-      }
-      const currentX = e.clientX;
-      const currentY = e.clientY;
-      const width = currentX - startX;
-      const height = currentY - startY;
-
-      switch (selectedTool) {
-        case "rectangle":
-          currentShape = {
-            id: Date.now().toString(),
-            type: "rectangle",
-            x: startX,
-            y: startY,
-            width,
-            height,
-            color: "black",
-          };
-          break;
-        case "circle":
-          const radius = Math.sqrt(width * width + height * height) / 2;
-          const circleX = startX + Math.sign(width) * radius - radius;
-          const circleY = startY + Math.sign(height) * radius - radius;
-
-          currentShape = {
-            id: Date.now().toString(),
-            type: "circle",
-            x: circleX,
-            y: circleY,
-            radius,
-            color: "black",
-          };
-          break;
-        default:
-          break;
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      RedrawCanvas(ctx, shapes);
-      DrawShapes(ctx, currentShape!);
-    };
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      if (currentShape) {
-        setShapes((prevShapes) => [...prevShapes, currentShape!]);
-      }
-    };
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
+  const handleMouseDown = HandleMouseDown(
+    canvasRef,
+    shapes,
+    selectedTool,
+    setShapes
+  );
   return (
     <div className="bg-white h-screen w-screen">
       <div className="flex justify-center">
