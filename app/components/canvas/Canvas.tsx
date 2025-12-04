@@ -5,6 +5,7 @@ import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { HandleMouseDown } from "./HandleMouseDown";
 import { useDisableZoom } from "@/app/hooks/useDisableZoom";
+import { handleShapeHover } from "@/app/utils/handleShapeHover";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -88,7 +89,17 @@ export function Canvas() {
       <canvas
         ref={canvasRef}
         onMouseDown={handleMouseDown}
-        className="absolute top-0 left-0 w-full h-full cursor-crosshair z-0"
+        onMouseMove={(e) => {
+          const canvas = canvasRef.current;
+          if (!canvas) {
+            return;
+          }
+          const cursor = handleShapeHover(e, canvas, shapes, selectedTool);
+          canvas.style.cursor = cursor;
+        }}
+        className={`absolute top-0 left-0 w-full h-full cursor-${
+          selectedTool === "select" ? "default" : "crosshair"
+        } z-0`}
       ></canvas>
     </div>
   );
