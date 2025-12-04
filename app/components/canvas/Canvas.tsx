@@ -4,11 +4,15 @@ import { Shape } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { HandleMouseDown } from "./HandleMouseDown";
+import { useDisableZoom } from "@/app/hooks/useDisableZoom";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<selectedShapes>("rectangle");
+
+  useDisableZoom();
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
