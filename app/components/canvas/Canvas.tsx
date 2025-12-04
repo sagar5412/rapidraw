@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { Shape } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
-import { DrawShapes } from "./DrawShapes";
 import { HandleMouseDown } from "./HandleMouseDown";
 
 export function Canvas() {
