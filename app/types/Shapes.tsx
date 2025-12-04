@@ -18,4 +18,4 @@ export interface circle {
 }
 
 export type Shape = rectangle | circle;
-export type selectedShapes = "rectangle" | "circle";
+export type selectedShapes = "rectangle" | "circle" | "select";

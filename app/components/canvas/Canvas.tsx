@@ -10,6 +10,7 @@ export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<selectedShapes>("rectangle");
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
 
   useDisableZoom();
 
@@ -25,26 +26,38 @@ export function Canvas() {
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      RedrawCanvas(ctx, shapes);
+      RedrawCanvas(ctx, shapes, selectedShapeId);
     };
 
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
     return () => window.removeEventListener("resize", resizeCanvas);
-  }, [shapes]);
+  }, [shapes, selectedShapeId]);
 
   const handleMouseDown = HandleMouseDown(
     canvasRef,
     shapes,
     selectedTool,
-    setShapes
+    setShapes,
+    selectedShapeId,
+    setSelectedShapeId
   );
   return (
     <div className="bg-white h-screen w-screen">
       <div className="flex justify-center">
         <div className="flex bg-[#232329] m-2 rounded-lg z-50">
           <div className="m-4">
+            <button
+              className={` ${
+                selectedTool === "select"
+                  ? "bg-[#403E6A] p-2 rounded-lgx"
+                  : "p-2 rounded-lg"
+              }`}
+              onClick={() => setSelectedTool("select")}
+            >
+              Select
+            </button>
             <button
               className={` ${
                 selectedTool === "rectangle"

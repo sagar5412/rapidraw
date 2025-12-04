@@ -2,18 +2,30 @@ import { selectedShapes, Shape } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { DrawShapes } from "./DrawShapes";
 import { RefObject } from "react";
+import { handleSelectionMode } from "@/app/utils/handleSelectionMode";
 
 export const HandleMouseDown = (
   canvasRef: RefObject<HTMLCanvasElement | null>,
   shapes: Shape[],
   selectedTool: selectedShapes,
-  setShapes: React.Dispatch<React.SetStateAction<Shape[]>>
+  setShapes: React.Dispatch<React.SetStateAction<Shape[]>>,
+  selectedShapeId: string | null,
+  setSelectedShapeId: (id: string | null) => void
 ) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const startX = e.clientX;
     const startY = e.clientY;
     let currentShape: Shape | null = null;
 
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    if (selectedTool === "select") {
+      handleSelectionMode(e, canvas, shapes, setSelectedShapeId);
+      return;
+    }
     const handleMouseMove = (e: MouseEvent) => {
       const canvas = canvasRef.current;
       if (!canvas) {
@@ -75,7 +87,7 @@ export const HandleMouseDown = (
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      RedrawCanvas(ctx, shapes);
+      RedrawCanvas(ctx, shapes, selectedShapeId);
       if (currentShape) {
         DrawShapes(ctx, currentShape!);
       }
