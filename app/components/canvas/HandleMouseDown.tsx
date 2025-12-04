@@ -47,18 +47,23 @@ export const HandleMouseDown = (
 
       switch (selectedTool) {
         case "rectangle":
-          const x = Math.max(0, Math.min(startX, canvasWidth));
-          const y = Math.max(0, Math.min(startY, canvasHeight));
-          const rectWidth = Math.min(Math.abs(width), canvasWidth - x);
-          const rectHeight = Math.min(Math.abs(height), canvasHeight - y);
+          let rectX = width < 0 ? currentX : startX;
+          let rectY = height < 0 ? currentY : startY;
+          let rectWidth = Math.abs(width);
+          let rectHeight = Math.abs(height);
+
+          rectX = Math.max(0, rectX);
+          rectY = Math.max(0, rectY);
+          rectWidth = Math.min(rectWidth, canvasWidth - rectX);
+          rectHeight = Math.min(rectHeight, canvasHeight - rectY);
 
           currentShape = {
             id: Date.now().toString(),
             type: "rectangle",
-            x: startX,
-            y: startY,
-            width: width < 0 ? -rectWidth : rectWidth,
-            height: height < 0 ? -rectHeight : rectHeight,
+            x: rectX,
+            y: rectY,
+            width: rectWidth,
+            height: rectHeight,
             color: "black",
           };
           break;
@@ -89,7 +94,7 @@ export const HandleMouseDown = (
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       RedrawCanvas(ctx, shapes, selectedShapeId);
       if (currentShape) {
-        DrawShapes(ctx, currentShape!);
+        DrawShapes(ctx, currentShape);
       }
     };
     const handleMouseUp = () => {

@@ -52,7 +52,7 @@ export function Canvas() {
             <button
               className={` ${
                 selectedTool === "select"
-                  ? "bg-[#403E6A] p-2 rounded-lgx"
+                  ? "bg-[#403E6A] p-2 rounded-lg"
                   : "p-2 rounded-lg"
               }`}
               onClick={() => setSelectedTool("select")}
