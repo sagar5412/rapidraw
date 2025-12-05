@@ -1,19 +1,44 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Shape } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { HandleMouseDown } from "./HandleMouseDown";
-import { useDisableZoom } from "@/app/hooks/useDisableZoom";
+import { useCanvasZoom } from "@/app/hooks/useCanvasZoom";
 import { handleShapeHover } from "@/app/utils/handleShapeHover";
+import { ZoomControls } from "./ZoomControls";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<selectedShapes>("rectangle");
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [lastPan, setLastPan] = useState({ x: 0, y: 0 });
 
-  useDisableZoom();
+  const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
+    useCanvasZoom(1);
+
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      const isZoomGesture = e.ctrlKey || e.metaKey;
+
+      if (isZoomGesture) {
+        e.preventDefault();
+        handleWheelZoom(e.deltaY, true);
+      } else {
+        e.preventDefault();
+        setOffset((prev) => ({
+          x: prev.x - e.deltaX,
+          y: prev.y - e.deltaY,
+        }));
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, [handleWheelZoom]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -27,14 +52,14 @@ export function Canvas() {
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      RedrawCanvas(ctx, shapes, selectedShapeId);
+      RedrawCanvas(ctx, shapes, selectedShapeId, offset, scale);
     };
 
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
     return () => window.removeEventListener("resize", resizeCanvas);
-  }, [shapes, selectedShapeId]);
+  }, [shapes, selectedShapeId, scale, offset]);
 
   const handleMouseDown = HandleMouseDown(
     canvasRef,
@@ -42,8 +67,35 @@ export function Canvas() {
     selectedTool,
     setShapes,
     selectedShapeId,
-    setSelectedShapeId
+    setSelectedShapeId,
+    offset,
+    scale
   );
+
+  const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button === 1 || e.shiftKey) {
+      e.preventDefault();
+      setIsPanning(true);
+      setLastPan({ x: e.clientX, y: e.clientY });
+      canvasRef.current!.style.cursor = "grabbing";
+    }
+  };
+
+  const handlePanMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isPanning) return;
+    const dx = e.clientX - lastPan.x;
+    const dy = e.clientY - lastPan.y;
+    setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    setLastPan({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePanEnd = () => {
+    setIsPanning(false);
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = "default";
+    }
+  };
+
   return (
     <div className="bg-white h-screen w-screen">
       <div className="flex justify-center">
@@ -52,8 +104,8 @@ export function Canvas() {
             <button
               className={` ${
                 selectedTool === "select"
-                  ? "bg-[#403E6A] p-2 rounded-lg"
-                  : "p-2 rounded-lg"
+                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
+                  : "p-2 rounded-lg text-white"
               }`}
               onClick={() => setSelectedTool("select")}
             >
@@ -62,8 +114,8 @@ export function Canvas() {
             <button
               className={` ${
                 selectedTool === "rectangle"
-                  ? "bg-[#403E6A] p-2 rounded-lg"
-                  : "p-2 rounded-lg"
+                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
+                  : "p-2 rounded-lg text-white"
               }`}
               onClick={() => {
                 setSelectedTool("rectangle");
@@ -76,8 +128,8 @@ export function Canvas() {
             <button
               className={` ${
                 selectedTool === "circle"
-                  ? "bg-[#403E6A] p-2 rounded-lg"
-                  : "p-2 rounded-lg"
+                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
+                  : "p-2 rounded-lg text-white"
               }`}
               onClick={() => setSelectedTool("circle")}
             >
@@ -88,19 +140,43 @@ export function Canvas() {
       </div>
       <canvas
         ref={canvasRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={(e) => {
-          const canvas = canvasRef.current;
-          if (!canvas) {
-            return;
+        onMouseDown={(e) => {
+          if (e.button === 1 || e.shiftKey) {
+            handlePanStart(e);
+          } else {
+            handleMouseDown(e);
           }
-          const cursor = handleShapeHover(e, canvas, shapes, selectedTool);
-          canvas.style.cursor = cursor;
         }}
+        onMouseMove={(e) => {
+          handlePanMove(e);
+          if (!isPanning) {
+            const canvas = canvasRef.current;
+            if (!canvas) {
+              return;
+            }
+            const cursor = handleShapeHover(
+              e,
+              canvas,
+              shapes,
+              selectedTool,
+              offset,
+              scale
+            );
+            canvas.style.cursor = cursor;
+          }
+        }}
+        onMouseUp={handlePanEnd}
         className={`absolute top-0 left-0 w-full h-full cursor-${
           selectedTool === "select" ? "default" : "crosshair"
         } z-0`}
       ></canvas>
+
+      {/* Zoom Controls */}
+      <ZoomControls
+        zoomIn={zoomIn}
+        zoomOut={zoomOut}
+        zoomPercentage={zoomPercentage}
+      />
     </div>
   );
 }

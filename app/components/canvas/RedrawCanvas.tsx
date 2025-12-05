@@ -3,15 +3,21 @@ import { Shape } from "@/app/types/Shapes";
 export const RedrawCanvas = (
   ctx: CanvasRenderingContext2D,
   shapes: Shape[],
-  selectedShapeId: string | null
+  selectedShapeId: string | null,
+  offset: { x: number; y: number },
+  scale: number
 ) => {
   const canvas = ctx.canvas;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  ctx.save();
+  ctx.translate(offset.x, offset.y);
+  ctx.scale(scale, scale);
+
   shapes.forEach((shape) => {
     ctx.save();
     if (shape.id === selectedShapeId) {
-      ctx.strokeStyle = "#3B82F6"; // Blue outline
+      ctx.strokeStyle = "#3B82F6";
       ctx.lineWidth = 3;
       ctx.setLineDash([5, 5]);
     } else {
@@ -36,4 +42,6 @@ export const RedrawCanvas = (
     }
     ctx.restore();
   });
+
+  ctx.restore();
 };

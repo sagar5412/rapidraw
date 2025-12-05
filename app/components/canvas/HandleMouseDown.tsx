@@ -3,6 +3,7 @@ import { RedrawCanvas } from "./RedrawCanvas";
 import { DrawShapes } from "./DrawShapes";
 import { RefObject } from "react";
 import { handleSelectionMode } from "@/app/utils/handleSelectionMode";
+import { screenToWorld } from "@/app/utils/coordinates";
 
 export const HandleMouseDown = (
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -10,11 +11,14 @@ export const HandleMouseDown = (
   selectedTool: selectedShapes,
   setShapes: React.Dispatch<React.SetStateAction<Shape[]>>,
   selectedShapeId: string | null,
-  setSelectedShapeId: (id: string | null) => void
+  setSelectedShapeId: (id: string | null) => void,
+  offset: { x: number; y: number },
+  scale: number
 ) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const startX = e.clientX;
-    const startY = e.clientY;
+    const startWorld = screenToWorld(e.clientX, e.clientY, offset, scale);
+    const startX = startWorld.x;
+    const startY = startWorld.y;
     let currentShape: Shape | null = null;
 
     const canvas = canvasRef.current;
@@ -23,9 +27,10 @@ export const HandleMouseDown = (
     }
 
     if (selectedTool === "select") {
-      handleSelectionMode(e, canvas, shapes, setSelectedShapeId);
+      handleSelectionMode(e, canvas, shapes, setSelectedShapeId, offset, scale);
       return;
     }
+
     const handleMouseMove = (e: MouseEvent) => {
       const canvas = canvasRef.current;
       if (!canvas) {
@@ -36,26 +41,19 @@ export const HandleMouseDown = (
         return;
       }
 
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-
-      const currentX = Math.max(Math.min(e.clientX, canvasWidth), 0);
-      const currentY = Math.max(Math.min(e.clientY, canvasHeight), 0);
+      const currentWorld = screenToWorld(e.clientX, e.clientY, offset, scale);
+      const currentX = currentWorld.x;
+      const currentY = currentWorld.y;
 
       const width = currentX - startX;
       const height = currentY - startY;
 
       switch (selectedTool) {
         case "rectangle":
-          let rectX = width < 0 ? currentX : startX;
-          let rectY = height < 0 ? currentY : startY;
-          let rectWidth = Math.abs(width);
-          let rectHeight = Math.abs(height);
-
-          rectX = Math.max(0, rectX);
-          rectY = Math.max(0, rectY);
-          rectWidth = Math.min(rectWidth, canvasWidth - rectX);
-          rectHeight = Math.min(rectHeight, canvasHeight - rectY);
+          const rectX = width < 0 ? currentX : startX;
+          const rectY = height < 0 ? currentY : startY;
+          const rectWidth = Math.abs(width);
+          const rectHeight = Math.abs(height);
 
           currentShape = {
             id: Date.now().toString(),
@@ -72,11 +70,8 @@ export const HandleMouseDown = (
           const radiusY = Math.abs(height) / 2;
           const radius = Math.max(radiusX, radiusY);
 
-          let circleX = startX + width / 2 - radius;
-          let circleY = startY + height / 2 - radius;
-
-          circleX = Math.max(0, Math.min(circleX, canvasWidth - radius * 2));
-          circleY = Math.max(0, Math.min(circleY, canvasHeight - radius * 2));
+          const circleX = startX + width / 2 - radius;
+          const circleY = startY + height / 2 - radius;
 
           currentShape = {
             id: Date.now().toString(),
@@ -92,11 +87,12 @@ export const HandleMouseDown = (
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      RedrawCanvas(ctx, shapes, selectedShapeId);
+      RedrawCanvas(ctx, shapes, selectedShapeId, offset, scale);
       if (currentShape) {
-        DrawShapes(ctx, currentShape);
+        DrawShapes(ctx, currentShape, offset, scale);
       }
     };
+
     const handleMouseUp = () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
@@ -104,8 +100,10 @@ export const HandleMouseDown = (
         setShapes((prevShapes) => [...prevShapes, currentShape!]);
       }
     };
+
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
   };
+
   return handleMouseDown;
 };
