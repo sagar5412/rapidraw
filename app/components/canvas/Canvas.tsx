@@ -53,6 +53,21 @@ export function Canvas() {
   }, [handleWheelZoom]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedShapeId) {
+        e.preventDefault();
+        setShapes((prevShapes) =>
+          prevShapes.filter((shape) => shape.id !== selectedShapeId)
+        );
+        setSelectedShapeId(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedShapeId]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
       return;
