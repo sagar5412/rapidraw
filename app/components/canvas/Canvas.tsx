@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Shape } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { HandleMouseDown } from "./HandleMouseDown";
 import { useCanvasZoom } from "@/app/hooks/useCanvasZoom";
+import { useDragShape } from "@/app/hooks/useDragShape";
 import { handleShapeHover } from "@/app/utils/handleShapeHover";
 import { ZoomControls } from "./ZoomControls";
 
@@ -19,6 +20,17 @@ export function Canvas() {
 
   const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
+
+  const { isDragging, handleDragStart, handleDragMove, handleDragEnd } =
+    useDragShape(
+      canvasRef,
+      shapes,
+      setShapes,
+      selectedShapeId,
+      setSelectedShapeId,
+      offset,
+      scale
+    );
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -96,6 +108,46 @@ export function Canvas() {
     }
   };
 
+  const onMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button === 1 || e.shiftKey) {
+      handlePanStart(e);
+    } else if (selectedTool === "select") {
+      handleDragStart(e);
+    } else {
+      handleMouseDown(e);
+    }
+  };
+
+  const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    handlePanMove(e);
+
+    if (isDragging) {
+      handleDragMove(e);
+      return;
+    }
+
+    if (!isPanning) {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+      const cursor = handleShapeHover(
+        e,
+        canvas,
+        shapes,
+        selectedTool,
+        offset,
+        scale
+      );
+      canvas.style.cursor = cursor;
+    }
+  };
+
+  const onMouseUp = () => {
+    handlePanEnd();
+    handleDragEnd();
+  };
+
   return (
     <div className="bg-white h-screen w-screen">
       <div className="flex justify-center">
@@ -140,38 +192,14 @@ export function Canvas() {
       </div>
       <canvas
         ref={canvasRef}
-        onMouseDown={(e) => {
-          if (e.button === 1 || e.shiftKey) {
-            handlePanStart(e);
-          } else {
-            handleMouseDown(e);
-          }
-        }}
-        onMouseMove={(e) => {
-          handlePanMove(e);
-          if (!isPanning) {
-            const canvas = canvasRef.current;
-            if (!canvas) {
-              return;
-            }
-            const cursor = handleShapeHover(
-              e,
-              canvas,
-              shapes,
-              selectedTool,
-              offset,
-              scale
-            );
-            canvas.style.cursor = cursor;
-          }
-        }}
-        onMouseUp={handlePanEnd}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
         className={`absolute top-0 left-0 w-full h-full cursor-${
           selectedTool === "select" ? "default" : "crosshair"
         } z-0`}
       ></canvas>
 
-      {/* Zoom Controls */}
       <ZoomControls
         zoomIn={zoomIn}
         zoomOut={zoomOut}

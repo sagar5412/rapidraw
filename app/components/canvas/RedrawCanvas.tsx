@@ -17,7 +17,7 @@ export const RedrawCanvas = (
   shapes.forEach((shape) => {
     ctx.save();
     if (shape.id === selectedShapeId) {
-      ctx.strokeStyle = "#3B82F6";
+      ctx.strokeStyle = "black";
       ctx.lineWidth = 3;
       ctx.setLineDash([5, 5]);
     } else {
