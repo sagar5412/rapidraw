@@ -6,12 +6,14 @@ import { RedrawCanvas } from "./RedrawCanvas";
 import { HandleMouseDown } from "./HandleMouseDown";
 import { useCanvasZoom } from "@/app/hooks/useCanvasZoom";
 import { useDragShape } from "@/app/hooks/useDragShape";
+import { useHistory } from "@/app/hooks/useHistory";
 import { handleShapeHover } from "@/app/utils/handleShapeHover";
 import { ZoomControls } from "./ZoomControls";
+import { HistoryControls } from "./HistoryControls";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [shapes, setShapes] = useState<Shape[]>([]);
+  const { shapes, setShapes, undo, redo, canUndo, canRedo } = useHistory([]);
   const [selectedTool, setSelectedTool] = useState<selectedShapes>("rectangle");
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -61,11 +63,25 @@ export function Canvas() {
         );
         setSelectedShapeId(null);
       }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        redo();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedShapeId]);
+  }, [selectedShapeId, undo, redo, setShapes]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -215,11 +231,21 @@ export function Canvas() {
         } z-0`}
       ></canvas>
 
-      <ZoomControls
-        zoomIn={zoomIn}
-        zoomOut={zoomOut}
-        zoomPercentage={zoomPercentage}
-      />
+      {/* Bottom-left controls: Zoom + Undo/Redo */}
+      <div className="fixed bottom-6 left-6 flex items-center gap-2 bg-[#232329] rounded-lg p-2 shadow-lg z-50">
+        <ZoomControls
+          zoomIn={zoomIn}
+          zoomOut={zoomOut}
+          zoomPercentage={zoomPercentage}
+        />
+        <div className="w-px h-6 bg-gray-600 mx-1"></div>
+        <HistoryControls
+          undo={undo}
+          redo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+        />
+      </div>
     </div>
   );
 }
