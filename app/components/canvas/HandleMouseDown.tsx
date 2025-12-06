@@ -4,6 +4,7 @@ import { DrawShapes } from "./DrawShapes";
 import { RefObject } from "react";
 import { handleSelectionMode } from "@/app/utils/handleSelectionMode";
 import { screenToWorld } from "@/app/utils/coordinates";
+import { isPointInShape } from "@/app/utils/checkPoint";
 
 export const HandleMouseDown = (
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -28,6 +29,19 @@ export const HandleMouseDown = (
 
     if (selectedTool === "select") {
       handleSelectionMode(e, canvas, shapes, setSelectedShapeId, offset, scale);
+      return;
+    }
+
+    if (selectedTool === "eraser") {
+      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+      const shapeToDelete = shapes.find((shape) =>
+        isPointInShape(shape, worldPos.x, worldPos.y)
+      );
+      if (shapeToDelete) {
+        setShapes((prevShapes) =>
+          prevShapes.filter((s) => s.id !== shapeToDelete.id)
+        );
+      }
       return;
     }
 

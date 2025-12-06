@@ -62,4 +62,5 @@ export type selectedShapes =
   | "arrow"
   | "freehand"
   | "diamond"
+  | "eraser"
   | "select";

@@ -258,6 +258,16 @@ export function Canvas() {
             >
               Diamond
             </button>
+            <button
+              className={` ${
+                selectedTool === "eraser"
+                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
+                  : "p-2 rounded-lg text-white"
+              }`}
+              onClick={() => setSelectedTool("eraser")}
+            >
+              Eraser
+            </button>
           </div>
         </div>
       </div>
