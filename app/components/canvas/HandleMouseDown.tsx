@@ -122,6 +122,22 @@ export const HandleMouseDown = (
             };
           }
           break;
+        case "diamond":
+          const diamondX = width < 0 ? currentX : startX;
+          const diamondY = height < 0 ? currentY : startY;
+          const diamondWidth = Math.abs(width);
+          const diamondHeight = Math.abs(height);
+
+          currentShape = {
+            id: Date.now().toString(),
+            type: "diamond",
+            x: diamondX,
+            y: diamondY,
+            width: diamondWidth,
+            height: diamondHeight,
+            color: "black",
+          };
+          break;
         default:
           break;
       }

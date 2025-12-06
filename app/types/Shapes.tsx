@@ -44,11 +44,22 @@ export interface freehand {
   color: string;
 }
 
-export type Shape = rectangle | circle | line | arrow | freehand;
+export interface diamond {
+  id: string;
+  type: "diamond";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+}
+
+export type Shape = rectangle | circle | line | arrow | freehand | diamond;
 export type selectedShapes =
   | "rectangle"
   | "circle"
   | "line"
   | "arrow"
   | "freehand"
+  | "diamond"
   | "select";

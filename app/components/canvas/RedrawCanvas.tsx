@@ -85,6 +85,16 @@ export const RedrawCanvas = (
         }
         ctx.stroke();
       }
+    } else if (shape.type === "diamond") {
+      const cx = shape.x + shape.width / 2;
+      const cy = shape.y + shape.height / 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, shape.y);
+      ctx.lineTo(shape.x + shape.width, cy);
+      ctx.lineTo(cx, shape.y + shape.height);
+      ctx.lineTo(shape.x, cy);
+      ctx.closePath();
+      ctx.stroke();
     }
     ctx.restore();
   });

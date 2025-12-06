@@ -108,5 +108,44 @@ export const isPointInShape = (shape: Shape, x: number, y: number): boolean => {
     return false;
   }
 
+  if (shape.type === "diamond") {
+    const cx = shape.x + shape.width / 2;
+    const cy = shape.y + shape.height / 2;
+    const top = { x: cx, y: shape.y };
+    const right = { x: shape.x + shape.width, y: cy };
+    const bottom = { x: cx, y: shape.y + shape.height };
+    const left = { x: shape.x, y: cy };
+
+    const edges = [
+      [top, right],
+      [right, bottom],
+      [bottom, left],
+      [left, top],
+    ];
+
+    for (const [p1, p2] of edges) {
+      const x1 = p1.x,
+        y1 = p1.y,
+        x2 = p2.x,
+        y2 = p2.y;
+      const segmentLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+      if (segmentLength === 0) continue;
+
+      const t = Math.max(
+        0,
+        Math.min(
+          1,
+          ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / segmentLength ** 2
+        )
+      );
+      const nearestX = x1 + t * (x2 - x1);
+      const nearestY = y1 + t * (y2 - y1);
+      const distance = Math.sqrt((x - nearestX) ** 2 + (y - nearestY) ** 2);
+
+      if (distance <= tolerance) return true;
+    }
+    return false;
+  }
+
   return false;
 };
