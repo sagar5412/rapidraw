@@ -39,6 +39,12 @@ export const RedrawCanvas = (
       );
       ctx.stroke();
       ctx.closePath();
+    } else if (shape.type === "line") {
+      ctx.beginPath();
+      ctx.moveTo(shape.x1, shape.y1);
+      ctx.lineTo(shape.x2, shape.y2);
+      ctx.stroke();
+      ctx.closePath();
     }
     ctx.restore();
   });

@@ -17,5 +17,15 @@ export interface circle {
   color: string;
 }
 
-export type Shape = rectangle | circle;
-export type selectedShapes = "rectangle" | "circle" | "select";
+export interface line {
+  id: string;
+  type: "line";
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+}
+
+export type Shape = rectangle | circle | line;
+export type selectedShapes = "rectangle" | "circle" | "line" | "select";

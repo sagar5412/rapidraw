@@ -82,6 +82,17 @@ export const HandleMouseDown = (
             color: "black",
           };
           break;
+        case "line":
+          currentShape = {
+            id: Date.now().toString(),
+            type: "line",
+            x1: startX,
+            y1: startY,
+            x2: currentX,
+            y2: currentY,
+            color: "black",
+          };
+          break;
         default:
           break;
       }

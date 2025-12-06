@@ -218,6 +218,16 @@ export function Canvas() {
             >
               Circle
             </button>
+            <button
+              className={` ${
+                selectedTool === "line"
+                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
+                  : "p-2 rounded-lg text-white"
+              }`}
+              onClick={() => setSelectedTool("line")}
+            >
+              Line
+            </button>
           </div>
         </div>
       </div>

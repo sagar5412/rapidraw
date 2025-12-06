@@ -33,6 +33,12 @@ export const DrawShapes = (
     );
     ctx.stroke();
     ctx.closePath();
+  } else if (currentShape.type === "line") {
+    ctx.beginPath();
+    ctx.moveTo(currentShape.x1, currentShape.y1);
+    ctx.lineTo(currentShape.x2, currentShape.y2);
+    ctx.stroke();
+    ctx.closePath();
   }
 
   ctx.restore();

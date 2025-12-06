@@ -27,5 +27,27 @@ export const isPointInShape = (shape: Shape, x: number, y: number): boolean => {
     return Math.abs(distance - shape.radius) <= tolerance;
   }
 
+  if (shape.type === "line") {
+    const { x1, y1, x2, y2 } = shape;
+    const lineLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+
+    if (lineLength === 0) {
+      return Math.sqrt((x - x1) ** 2 + (y - y1) ** 2) <= tolerance;
+    }
+
+    const t = Math.max(
+      0,
+      Math.min(
+        1,
+        ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / lineLength ** 2
+      )
+    );
+    const nearestX = x1 + t * (x2 - x1);
+    const nearestY = y1 + t * (y2 - y1);
+    const distance = Math.sqrt((x - nearestX) ** 2 + (y - nearestY) ** 2);
+
+    return distance <= tolerance;
+  }
+
   return false;
 };
