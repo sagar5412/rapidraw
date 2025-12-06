@@ -228,6 +228,16 @@ export function Canvas() {
             >
               Line
             </button>
+            <button
+              className={` ${
+                selectedTool === "arrow"
+                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
+                  : "p-2 rounded-lg text-white"
+              }`}
+              onClick={() => setSelectedTool("arrow")}
+            >
+              Arrow
+            </button>
           </div>
         </div>
       </div>

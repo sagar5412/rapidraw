@@ -1,5 +1,28 @@
 import { Shape } from "@/app/types/Shapes";
 
+const drawArrowhead = (
+  ctx: CanvasRenderingContext2D,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  headLength: number = 10
+) => {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(
+    x2 - headLength * Math.cos(angle - Math.PI / 6),
+    y2 - headLength * Math.sin(angle - Math.PI / 6)
+  );
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(
+    x2 - headLength * Math.cos(angle + Math.PI / 6),
+    y2 - headLength * Math.sin(angle + Math.PI / 6)
+  );
+  ctx.stroke();
+};
+
 export const RedrawCanvas = (
   ctx: CanvasRenderingContext2D,
   shapes: Shape[],
@@ -45,6 +68,13 @@ export const RedrawCanvas = (
       ctx.lineTo(shape.x2, shape.y2);
       ctx.stroke();
       ctx.closePath();
+    } else if (shape.type === "arrow") {
+      ctx.beginPath();
+      ctx.moveTo(shape.x1, shape.y1);
+      ctx.lineTo(shape.x2, shape.y2);
+      ctx.stroke();
+      ctx.closePath();
+      drawArrowhead(ctx, shape.x1, shape.y1, shape.x2, shape.y2);
     }
     ctx.restore();
   });

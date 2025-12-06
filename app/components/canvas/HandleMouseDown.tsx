@@ -93,6 +93,17 @@ export const HandleMouseDown = (
             color: "black",
           };
           break;
+        case "arrow":
+          currentShape = {
+            id: Date.now().toString(),
+            type: "arrow",
+            x1: startX,
+            y1: startY,
+            x2: currentX,
+            y2: currentY,
+            color: "black",
+          };
+          break;
         default:
           break;
       }

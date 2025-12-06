@@ -63,7 +63,7 @@ export function useDragShape(
         prevShapes.map((shape) => {
           if (shape.id !== draggedShapeId) return shape;
 
-          if (shape.type === "line") {
+          if (shape.type === "line" || shape.type === "arrow") {
             return {
               ...shape,
               x1: shape.x1 + dx,
