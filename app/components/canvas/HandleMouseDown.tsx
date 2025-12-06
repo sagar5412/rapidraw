@@ -1,4 +1,4 @@
-import { selectedShapes, Shape } from "@/app/types/Shapes";
+import { selectedShapes, Shape, freehand } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { DrawShapes } from "./DrawShapes";
 import { RefObject } from "react";
@@ -29,6 +29,16 @@ export const HandleMouseDown = (
     if (selectedTool === "select") {
       handleSelectionMode(e, canvas, shapes, setSelectedShapeId, offset, scale);
       return;
+    }
+
+    // Initialize freehand shape with first point
+    if (selectedTool === "freehand") {
+      currentShape = {
+        id: Date.now().toString(),
+        type: "freehand",
+        points: [{ x: startX, y: startY }],
+        color: "black",
+      };
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -103,6 +113,14 @@ export const HandleMouseDown = (
             y2: currentY,
             color: "black",
           };
+          break;
+        case "freehand":
+          if (currentShape && currentShape.type === "freehand") {
+            currentShape = {
+              ...currentShape,
+              points: [...currentShape.points, { x: currentX, y: currentY }],
+            };
+          }
           break;
         default:
           break;

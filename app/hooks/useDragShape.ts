@@ -73,6 +73,16 @@ export function useDragShape(
             };
           }
 
+          if (shape.type === "freehand") {
+            return {
+              ...shape,
+              points: shape.points.map((p) => ({
+                x: p.x + dx,
+                y: p.y + dy,
+              })),
+            };
+          }
+
           return {
             ...shape,
             x: shape.x + dx,

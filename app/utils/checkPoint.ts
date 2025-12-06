@@ -71,5 +71,42 @@ export const isPointInShape = (shape: Shape, x: number, y: number): boolean => {
     return distance <= tolerance;
   }
 
+  if (shape.type === "freehand") {
+    const { points } = shape;
+    if (points.length < 2) {
+      if (points.length === 1) {
+        return (
+          Math.sqrt((x - points[0].x) ** 2 + (y - points[0].y) ** 2) <=
+          tolerance
+        );
+      }
+      return false;
+    }
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const x1 = points[i].x;
+      const y1 = points[i].y;
+      const x2 = points[i + 1].x;
+      const y2 = points[i + 1].y;
+
+      const segmentLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+      if (segmentLength === 0) continue;
+
+      const t = Math.max(
+        0,
+        Math.min(
+          1,
+          ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / segmentLength ** 2
+        )
+      );
+      const nearestX = x1 + t * (x2 - x1);
+      const nearestY = y1 + t * (y2 - y1);
+      const distance = Math.sqrt((x - nearestX) ** 2 + (y - nearestY) ** 2);
+
+      if (distance <= tolerance) return true;
+    }
+    return false;
+  }
+
   return false;
 };

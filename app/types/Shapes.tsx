@@ -37,10 +37,18 @@ export interface arrow {
   color: string;
 }
 
-export type Shape = rectangle | circle | line | arrow;
+export interface freehand {
+  id: string;
+  type: "freehand";
+  points: { x: number; y: number }[];
+  color: string;
+}
+
+export type Shape = rectangle | circle | line | arrow | freehand;
 export type selectedShapes =
   | "rectangle"
   | "circle"
   | "line"
   | "arrow"
+  | "freehand"
   | "select";

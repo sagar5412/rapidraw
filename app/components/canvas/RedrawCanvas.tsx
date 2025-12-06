@@ -75,6 +75,16 @@ export const RedrawCanvas = (
       ctx.stroke();
       ctx.closePath();
       drawArrowhead(ctx, shape.x1, shape.y1, shape.x2, shape.y2);
+    } else if (shape.type === "freehand") {
+      const { points } = shape;
+      if (points.length >= 2) {
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+        ctx.stroke();
+      }
     }
     ctx.restore();
   });
