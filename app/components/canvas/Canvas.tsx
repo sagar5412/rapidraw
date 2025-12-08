@@ -27,6 +27,10 @@ export function Canvas() {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [isErasing, setIsErasing] = useState(false);
   const [eraserPath, setEraserPath] = useState<{ x: number; y: number }[]>([]);
+  const [eraserHoverPos, setEraserHoverPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
@@ -200,18 +204,9 @@ export function Canvas() {
     } else if (selectedTool === "text") {
       handleTextClick(e);
     } else if (selectedTool === "eraser") {
-      // Start erasing - erase shape under cursor and enable drag erase
+      // Start erasing - just track path, delete on mouse up
       setIsErasing(true);
       setEraserPath([{ x: e.clientX, y: e.clientY }]);
-      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
-      const shapeToDelete = shapes.find((shape) =>
-        isPointInShape(shape, worldPos.x, worldPos.y)
-      );
-      if (shapeToDelete) {
-        setShapes((prevShapes) =>
-          prevShapes.filter((s) => s.id !== shapeToDelete.id)
-        );
-      }
     } else if (selectedTool === "select") {
       // Check resize handle first if a shape is selected
       if (selectedShape) {
@@ -247,18 +242,9 @@ export function Canvas() {
   const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     handlePanMove(e);
 
-    // Drag-erase: continuously erase shapes while dragging with eraser
+    // Drag-erase: track path only, delete on mouse up
     if (isErasing && selectedTool === "eraser") {
       setEraserPath((prev) => [...prev, { x: e.clientX, y: e.clientY }]);
-      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
-      const shapeToDelete = shapes.find((shape) =>
-        isPointInShape(shape, worldPos.x, worldPos.y)
-      );
-      if (shapeToDelete) {
-        setShapes((prevShapes) =>
-          prevShapes.filter((s) => s.id !== shapeToDelete.id)
-        );
-      }
       return;
     }
 
@@ -294,6 +280,12 @@ export function Canvas() {
         }
       }
 
+      // Track eraser hover position
+      if (selectedTool === "eraser") {
+        setEraserHoverPos({ x: e.clientX, y: e.clientY });
+        return;
+      }
+
       const cursor = handleShapeHover(
         e,
         canvas,
@@ -310,6 +302,28 @@ export function Canvas() {
     handlePanEnd();
     handleDragEnd();
     handleResizeEnd();
+
+    // Erase shapes that intersect with eraser path on release
+    if (isErasing && eraserPath.length > 0) {
+      const shapesToDelete = new Set<string>();
+
+      // Check each point in the eraser path
+      for (const point of eraserPath) {
+        const worldPos = screenToWorld(point.x, point.y, offset, scale);
+        for (const shape of shapes) {
+          if (isPointInShape(shape, worldPos.x, worldPos.y)) {
+            shapesToDelete.add(shape.id);
+          }
+        }
+      }
+
+      if (shapesToDelete.size > 0) {
+        setShapes((prevShapes) =>
+          prevShapes.filter((s) => !shapesToDelete.has(s.id))
+        );
+      }
+    }
+
     setIsErasing(false);
     setEraserPath([]);
   };
@@ -333,9 +347,15 @@ export function Canvas() {
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onDoubleClick={onDoubleClick}
-        className={`absolute top-0 left-0 w-full h-full cursor-${
-          selectedTool === "select" ? "default" : "crosshair"
-        } z-0`}
+        className={`absolute top-0 left-0 w-full h-full z-0`}
+        style={{
+          cursor:
+            selectedTool === "eraser"
+              ? "none"
+              : selectedTool === "select"
+              ? "default"
+              : "crosshair",
+        }}
       ></canvas>
 
       {/* Eraser Trail Visual */}
@@ -374,6 +394,23 @@ export function Canvas() {
             </svg>
           );
         })()}
+
+      {/* Eraser Hover Cursor (when not dragging) */}
+      {selectedTool === "eraser" && !isErasing && eraserHoverPos && (
+        <svg
+          className="pointer-events-none fixed top-0 left-0 w-full h-full z-50"
+          style={{ overflow: "visible" }}
+        >
+          <circle
+            cx={eraserHoverPos.x}
+            cy={eraserHoverPos.y}
+            r="4"
+            fill="white"
+            stroke="#6B7280"
+            strokeWidth="1.5"
+          />
+        </svg>
+      )}
 
       {/* Text Editor Overlay */}
       {editingTextShape && (
