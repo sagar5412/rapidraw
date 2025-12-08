@@ -14,7 +14,8 @@ export const HandleMouseDown = (
   selectedShapeId: string | null,
   setSelectedShapeId: (id: string | null) => void,
   offset: { x: number; y: number },
-  scale: number
+  scale: number,
+  defaultColor: string = "#000000" // Default color based on background
 ) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const startWorld = screenToWorld(e.clientX, e.clientY, offset, scale);
@@ -28,7 +29,14 @@ export const HandleMouseDown = (
     }
 
     if (selectedTool === "select") {
-      handleSelectionMode(e, canvas, shapes, setSelectedShapeId, offset, scale);
+      handleSelectionMode(
+        e,
+        canvasRef,
+        shapes,
+        setSelectedShapeId,
+        offset,
+        scale
+      );
       return;
     }
 
@@ -40,7 +48,8 @@ export const HandleMouseDown = (
         id: Date.now().toString(),
         type: "freehand",
         points: [{ x: startX, y: startY }],
-        color: "black",
+        color: defaultColor,
+        strokeColor: defaultColor,
       };
     }
 
@@ -75,7 +84,8 @@ export const HandleMouseDown = (
             y: rectY,
             width: rectWidth,
             height: rectHeight,
-            color: "black",
+            color: defaultColor,
+            strokeColor: defaultColor,
           };
           break;
         case "circle":
@@ -92,7 +102,8 @@ export const HandleMouseDown = (
             x: circleX,
             y: circleY,
             radius,
-            color: "black",
+            color: defaultColor,
+            strokeColor: defaultColor,
           };
           break;
         case "line":
@@ -103,7 +114,8 @@ export const HandleMouseDown = (
             y1: startY,
             x2: currentX,
             y2: currentY,
-            color: "black",
+            color: defaultColor,
+            strokeColor: defaultColor,
           };
           break;
         case "arrow":
@@ -114,7 +126,8 @@ export const HandleMouseDown = (
             y1: startY,
             x2: currentX,
             y2: currentY,
-            color: "black",
+            color: defaultColor,
+            strokeColor: defaultColor,
           };
           break;
         case "freehand":
@@ -138,7 +151,8 @@ export const HandleMouseDown = (
             y: diamondY,
             width: diamondWidth,
             height: diamondHeight,
-            color: "black",
+            color: defaultColor,
+            strokeColor: defaultColor,
           };
           break;
         default:

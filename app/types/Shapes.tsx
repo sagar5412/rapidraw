@@ -1,4 +1,13 @@
-export interface rectangle {
+// Common style properties for shapes
+export interface ShapeStyle {
+  strokeColor?: string;
+  fillColor?: string;
+  strokeWidth?: number;
+  strokeStyle?: "solid" | "dashed" | "dotted";
+  opacity?: number;
+}
+
+export interface rectangle extends ShapeStyle {
   id: string;
   type: "rectangle";
   x: number;
@@ -8,7 +17,7 @@ export interface rectangle {
   color: string;
 }
 
-export interface circle {
+export interface circle extends ShapeStyle {
   id: string;
   type: "circle";
   x: number;
@@ -17,7 +26,7 @@ export interface circle {
   color: string;
 }
 
-export interface line {
+export interface line extends ShapeStyle {
   id: string;
   type: "line";
   x1: number;
@@ -27,7 +36,7 @@ export interface line {
   color: string;
 }
 
-export interface arrow {
+export interface arrow extends ShapeStyle {
   id: string;
   type: "arrow";
   x1: number;
@@ -37,14 +46,14 @@ export interface arrow {
   color: string;
 }
 
-export interface freehand {
+export interface freehand extends ShapeStyle {
   id: string;
   type: "freehand";
   points: { x: number; y: number }[];
   color: string;
 }
 
-export interface diamond {
+export interface diamond extends ShapeStyle {
   id: string;
   type: "diamond";
   x: number;
@@ -61,7 +70,7 @@ export interface TextSpan {
   italic?: boolean;
 }
 
-export interface textbox {
+export interface textbox extends ShapeStyle {
   id: string;
   type: "textbox";
   x: number;
@@ -80,6 +89,7 @@ export type Shape =
   | freehand
   | diamond
   | textbox;
+
 export type selectedShapes =
   | "rectangle"
   | "circle"

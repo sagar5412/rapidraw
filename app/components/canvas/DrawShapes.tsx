@@ -35,8 +35,13 @@ export const DrawShapes = (
   ctx.translate(offset.x, offset.y);
   ctx.scale(scale, scale);
 
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 1;
+  // Use shape's strokeColor for preview (or fallback to color or black)
+  const strokeColor =
+    currentShape.strokeColor ||
+    ("color" in currentShape ? currentShape.color : "#000000") ||
+    "#000000";
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = currentShape.strokeWidth || 1;
 
   if (currentShape.type === "rectangle") {
     ctx.strokeRect(

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Shape, textbox } from "@/app/types/Shapes";
+import { Shape, textbox, ShapeStyle } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { HandleMouseDown } from "./HandleMouseDown";
@@ -15,6 +15,8 @@ import { TextEditor } from "./TextEditor";
 import { Toolbar } from "./Toolbar";
 import { screenToWorld } from "@/app/utils/coordinates";
 import { isPointInShape } from "@/app/utils/checkPoint";
+import { ScreenSettingsSidebar } from "@/app/components/sidebar/ScreenSettingsSidebar";
+import { ShapeSettingsSidebar } from "@/app/components/sidebar/ShapeSettingsSidebar";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,6 +33,24 @@ export function Canvas() {
     x: number;
     y: number;
   } | null>(null);
+
+  // Screen settings
+  const [theme, setTheme] = useState<"default" | "light" | "dark">("default");
+  const [canvasBackground, setCanvasBackground] = useState("#F5F5F5");
+
+  // Calculate default color based on background (light bg = black, dark bg = white)
+  const isLightBackground = (color: string) => {
+    const hex = color.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5;
+  };
+
+  const defaultColor = isLightBackground(canvasBackground)
+    ? "#000000"
+    : "#FFFFFF";
 
   const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
@@ -155,7 +175,8 @@ export function Canvas() {
     selectedShapeId,
     setSelectedShapeId,
     offset,
-    scale
+    scale,
+    defaultColor
   );
 
   const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -193,6 +214,7 @@ export function Canvas() {
       height: 30,
       fontSize: 16,
       htmlContent: "",
+      strokeColor: defaultColor,
     };
     setShapes((prev) => [...prev, newTextbox]);
     setEditingTextId(newTextbox.id);
@@ -338,9 +360,39 @@ export function Canvas() {
     (s) => s.id === editingTextId && s.type === "textbox"
   ) as textbox | undefined;
 
+  // Handle shape style changes - update the selected shape
+  const handleShapeStyleUpdate = (updates: Partial<ShapeStyle>) => {
+    if (!selectedShapeId) return;
+    setShapes((prevShapes) =>
+      prevShapes.map((shape) =>
+        shape.id === selectedShapeId ? { ...shape, ...updates } : shape
+      )
+    );
+  };
+
   return (
-    <div className="bg-[#F5F5F5] h-screen w-screen">
+    <div
+      className="h-screen w-screen"
+      style={{ backgroundColor: canvasBackground }}
+    >
       <Toolbar selectedTool={selectedTool} setSelectedTool={setSelectedTool} />
+
+      {/* Screen Settings Sidebar */}
+      <ScreenSettingsSidebar
+        theme={theme}
+        setTheme={setTheme}
+        canvasBackground={canvasBackground}
+        setCanvasBackground={setCanvasBackground}
+        shapes={shapes}
+        setShapes={setShapes}
+      />
+
+      {/* Shape Settings Sidebar - show when shape is selected */}
+      <ShapeSettingsSidebar
+        selectedShape={selectedShape || null}
+        onUpdateShape={handleShapeStyleUpdate}
+      />
+
       <canvas
         ref={canvasRef}
         onMouseDown={onMouseDown}

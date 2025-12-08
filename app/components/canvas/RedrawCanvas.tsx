@@ -109,12 +109,35 @@ export const RedrawCanvas = (
     }
 
     ctx.save();
-    // All shapes use the same styling - selection shown via resize handles
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([]);
+
+    // Apply shape styles
+    const strokeColor =
+      shape.strokeColor ||
+      ("color" in shape ? shape.color : "black") ||
+      "black";
+    const fillColor = shape.fillColor || "transparent";
+    const strokeWidth = shape.strokeWidth || 1;
+    const strokeStyle = shape.strokeStyle || "solid";
+    const opacity = (shape.opacity ?? 100) / 100;
+
+    ctx.globalAlpha = opacity;
+    ctx.strokeStyle = strokeColor;
+    ctx.fillStyle = fillColor;
+    ctx.lineWidth = strokeWidth;
+
+    // Set stroke style
+    if (strokeStyle === "dashed") {
+      ctx.setLineDash([8, 4]);
+    } else if (strokeStyle === "dotted") {
+      ctx.setLineDash([2, 4]);
+    } else {
+      ctx.setLineDash([]);
+    }
 
     if (shape.type === "rectangle") {
+      if (fillColor !== "transparent") {
+        ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+      }
       ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
     } else if (shape.type === "circle") {
       ctx.beginPath();
@@ -125,6 +148,9 @@ export const RedrawCanvas = (
         0,
         Math.PI * 2
       );
+      if (fillColor !== "transparent") {
+        ctx.fill();
+      }
       ctx.stroke();
       ctx.closePath();
     } else if (shape.type === "line") {
@@ -159,6 +185,9 @@ export const RedrawCanvas = (
       ctx.lineTo(cx, shape.y + shape.height);
       ctx.lineTo(shape.x, cy);
       ctx.closePath();
+      if (fillColor !== "transparent") {
+        ctx.fill();
+      }
       ctx.stroke();
     } else if (shape.type === "textbox") {
       // Extract plain text from HTML content (only works in browser)
@@ -170,7 +199,7 @@ export const RedrawCanvas = (
         if (plainText) {
           const fontSize = shape.fontSize || 16;
           ctx.font = `${fontSize}px sans-serif`;
-          ctx.fillStyle = "black";
+          ctx.fillStyle = strokeColor; // Use shape's stroke color for text
           ctx.textBaseline = "top";
           ctx.setLineDash([]);
 
