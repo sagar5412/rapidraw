@@ -11,6 +11,7 @@ import { handleShapeHover } from "@/app/utils/handleShapeHover";
 import { ZoomControls } from "./ZoomControls";
 import { HistoryControls } from "./HistoryControls";
 import { TextEditor } from "./TextEditor";
+import { Toolbar } from "./Toolbar";
 import { screenToWorld } from "@/app/utils/coordinates";
 
 export function Canvas() {
@@ -231,107 +232,8 @@ export function Canvas() {
   ) as textbox | undefined;
 
   return (
-    <div className="bg-white h-screen w-screen">
-      <div className="flex justify-center">
-        <div className="flex bg-[#232329] m-2 rounded-lg z-50">
-          <div className="m-4">
-            <button
-              className={` ${
-                selectedTool === "select"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("select")}
-            >
-              Select
-            </button>
-            <button
-              className={` ${
-                selectedTool === "rectangle"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => {
-                setSelectedTool("rectangle");
-              }}
-            >
-              Rectangle
-            </button>
-          </div>
-          <div className="m-4">
-            <button
-              className={` ${
-                selectedTool === "circle"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("circle")}
-            >
-              Circle
-            </button>
-            <button
-              className={` ${
-                selectedTool === "line"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("line")}
-            >
-              Line
-            </button>
-            <button
-              className={` ${
-                selectedTool === "arrow"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("arrow")}
-            >
-              Arrow
-            </button>
-            <button
-              className={` ${
-                selectedTool === "freehand"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("freehand")}
-            >
-              Draw
-            </button>
-            <button
-              className={` ${
-                selectedTool === "diamond"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("diamond")}
-            >
-              Diamond
-            </button>
-            <button
-              className={` ${
-                selectedTool === "text"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("text")}
-            >
-              Text
-            </button>
-            <button
-              className={` ${
-                selectedTool === "eraser"
-                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
-                  : "p-2 rounded-lg text-white"
-              }`}
-              onClick={() => setSelectedTool("eraser")}
-            >
-              Eraser
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="bg-[#F5F5F5] h-screen w-screen">
+      <Toolbar selectedTool={selectedTool} setSelectedTool={setSelectedTool} />
       <canvas
         ref={canvasRef}
         onMouseDown={onMouseDown}
