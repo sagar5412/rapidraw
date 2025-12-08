@@ -23,7 +23,7 @@ const drawArrowhead = (
   ctx.stroke();
 };
 
-export type ResizeHandlePoint = { handle: string; x: number; y: number };
+export type ResizeHandlePoint = { handle: string | null; x: number; y: number };
 
 const HANDLE_SIZE = 8;
 
