@@ -147,5 +147,14 @@ export const isPointInShape = (shape: Shape, x: number, y: number): boolean => {
     return false;
   }
 
+  if (shape.type === "textbox") {
+    return (
+      x >= shape.x &&
+      x <= shape.x + shape.width &&
+      y >= shape.y &&
+      y <= shape.y + shape.height
+    );
+  }
+
   return false;
 };

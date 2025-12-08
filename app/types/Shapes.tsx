@@ -54,7 +54,31 @@ export interface diamond {
   color: string;
 }
 
-export type Shape = rectangle | circle | line | arrow | freehand | diamond;
+export interface TextSpan {
+  text: string;
+  color: string;
+  bold?: boolean;
+  italic?: boolean;
+}
+
+export interface textbox {
+  id: string;
+  type: "textbox";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  htmlContent: string;
+}
+
+export type Shape =
+  | rectangle
+  | circle
+  | line
+  | arrow
+  | freehand
+  | diamond
+  | textbox;
 export type selectedShapes =
   | "rectangle"
   | "circle"
@@ -62,5 +86,6 @@ export type selectedShapes =
   | "arrow"
   | "freehand"
   | "diamond"
+  | "text"
   | "eraser"
   | "select";

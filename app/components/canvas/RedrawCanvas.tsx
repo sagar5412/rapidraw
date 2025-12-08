@@ -28,7 +28,8 @@ export const RedrawCanvas = (
   shapes: Shape[],
   selectedShapeId: string | null,
   offset: { x: number; y: number },
-  scale: number
+  scale: number,
+  editingTextId?: string | null
 ) => {
   const canvas = ctx.canvas;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -38,6 +39,11 @@ export const RedrawCanvas = (
   ctx.scale(scale, scale);
 
   shapes.forEach((shape) => {
+    // Skip rendering textbox that is being edited (handled by TextEditor overlay)
+    if (shape.type === "textbox" && shape.id === editingTextId) {
+      return;
+    }
+
     ctx.save();
     if (shape.id === selectedShapeId) {
       ctx.strokeStyle = "black";
@@ -95,6 +101,40 @@ export const RedrawCanvas = (
       ctx.lineTo(shape.x, cy);
       ctx.closePath();
       ctx.stroke();
+    } else if (shape.type === "textbox") {
+      // Extract plain text from HTML content (only works in browser)
+      if (typeof document !== "undefined") {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = shape.htmlContent || "";
+        const plainText = tempDiv.textContent || tempDiv.innerText || "";
+
+        if (plainText) {
+          ctx.font = "16px sans-serif";
+          ctx.fillStyle = "black";
+          ctx.textBaseline = "top";
+          ctx.setLineDash([]);
+
+          // Split into lines and render
+          const lines = plainText.split("\n");
+          let y = shape.y;
+          for (const line of lines) {
+            ctx.fillText(line, shape.x, y);
+            y += 20;
+          }
+        }
+      }
+
+      // Draw selection border if selected
+      if (shape.id === selectedShapeId) {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(
+          shape.x - 2,
+          shape.y - 2,
+          shape.width + 4,
+          shape.height + 4
+        );
+        ctx.setLineDash([]);
+      }
     }
     ctx.restore();
   });

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Shape } from "@/app/types/Shapes";
+import { Shape, textbox } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
 import { HandleMouseDown } from "./HandleMouseDown";
@@ -10,6 +10,8 @@ import { useHistory } from "@/app/hooks/useHistory";
 import { handleShapeHover } from "@/app/utils/handleShapeHover";
 import { ZoomControls } from "./ZoomControls";
 import { HistoryControls } from "./HistoryControls";
+import { TextEditor } from "./TextEditor";
+import { screenToWorld } from "@/app/utils/coordinates";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -19,6 +21,7 @@ export function Canvas() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPan, setLastPan] = useState({ x: 0, y: 0 });
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
@@ -56,6 +59,9 @@ export function Canvas() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore keyboard shortcuts when editing text
+      if (editingTextId) return;
+
       if ((e.key === "Delete" || e.key === "Backspace") && selectedShapeId) {
         e.preventDefault();
         setShapes((prevShapes) =>
@@ -81,7 +87,7 @@ export function Canvas() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedShapeId, undo, redo, setShapes]);
+  }, [selectedShapeId, undo, redo, setShapes, editingTextId]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -95,14 +101,14 @@ export function Canvas() {
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      RedrawCanvas(ctx, shapes, selectedShapeId, offset, scale);
+      RedrawCanvas(ctx, shapes, selectedShapeId, offset, scale, editingTextId);
     };
 
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
     return () => window.removeEventListener("resize", resizeCanvas);
-  }, [shapes, selectedShapeId, scale, offset]);
+  }, [shapes, selectedShapeId, scale, offset, editingTextId]);
 
   const handleMouseDown = HandleMouseDown(
     canvasRef,
@@ -139,13 +145,48 @@ export function Canvas() {
     }
   };
 
+  const handleTextClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+    const newTextbox: textbox = {
+      id: Date.now().toString(),
+      type: "textbox",
+      x: worldPos.x,
+      y: worldPos.y,
+      width: 150,
+      height: 30,
+      htmlContent: "",
+    };
+    setShapes((prev) => [...prev, newTextbox]);
+    setEditingTextId(newTextbox.id);
+  };
+
   const onMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 1 || e.shiftKey) {
       handlePanStart(e);
+    } else if (selectedTool === "text") {
+      handleTextClick(e);
     } else if (selectedTool === "select") {
+      // Single click selects (allows dragging), handled by handleDragStart
       handleDragStart(e);
     } else {
       handleMouseDown(e);
+    }
+  };
+
+  const onDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (selectedTool === "select") {
+      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+      const clickedTextbox = shapes.find(
+        (s) =>
+          s.type === "textbox" &&
+          worldPos.x >= s.x &&
+          worldPos.x <= s.x + s.width &&
+          worldPos.y >= s.y &&
+          worldPos.y <= s.y + s.height
+      );
+      if (clickedTextbox && clickedTextbox.type === "textbox") {
+        setEditingTextId(clickedTextbox.id);
+      }
     }
   };
 
@@ -178,6 +219,16 @@ export function Canvas() {
     handlePanEnd();
     handleDragEnd();
   };
+
+  const handleTextUpdate = (updatedShape: textbox) => {
+    setShapes((prevShapes) =>
+      prevShapes.map((s) => (s.id === updatedShape.id ? updatedShape : s))
+    );
+  };
+
+  const editingTextShape = shapes.find(
+    (s) => s.id === editingTextId && s.type === "textbox"
+  ) as textbox | undefined;
 
   return (
     <div className="bg-white h-screen w-screen">
@@ -260,6 +311,16 @@ export function Canvas() {
             </button>
             <button
               className={` ${
+                selectedTool === "text"
+                  ? "bg-[#403E6A] p-2 rounded-lg text-white"
+                  : "p-2 rounded-lg text-white"
+              }`}
+              onClick={() => setSelectedTool("text")}
+            >
+              Text
+            </button>
+            <button
+              className={` ${
                 selectedTool === "eraser"
                   ? "bg-[#403E6A] p-2 rounded-lg text-white"
                   : "p-2 rounded-lg text-white"
@@ -276,10 +337,22 @@ export function Canvas() {
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
+        onDoubleClick={onDoubleClick}
         className={`absolute top-0 left-0 w-full h-full cursor-${
           selectedTool === "select" ? "default" : "crosshair"
         } z-0`}
       ></canvas>
+
+      {/* Text Editor Overlay */}
+      {editingTextShape && (
+        <TextEditor
+          textShape={editingTextShape}
+          offset={offset}
+          scale={scale}
+          onUpdate={handleTextUpdate}
+          onClose={() => setEditingTextId(null)}
+        />
+      )}
 
       {/* Bottom-left controls: Zoom + Undo/Redo */}
       <div className="fixed bottom-6 left-6 flex items-center gap-2 bg-[#232329] rounded-lg p-2 shadow-lg z-50">
