@@ -367,7 +367,7 @@ export function useResizeShape(
         return "ew-resize";
       case "start":
       case "end":
-        return "move";
+        return "nwse-resize";
       default:
         return "default";
     }
