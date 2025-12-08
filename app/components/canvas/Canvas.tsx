@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Shape, textbox } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
@@ -7,6 +7,7 @@ import { HandleMouseDown } from "./HandleMouseDown";
 import { useCanvasZoom } from "@/app/hooks/useCanvasZoom";
 import { useDragShape } from "@/app/hooks/useDragShape";
 import { useHistory } from "@/app/hooks/useHistory";
+import { useResizeShape } from "@/app/hooks/useResizeShape";
 import { handleShapeHover } from "@/app/utils/handleShapeHover";
 import { ZoomControls } from "./ZoomControls";
 import { HistoryControls } from "./HistoryControls";
@@ -37,6 +38,26 @@ export function Canvas() {
       offset,
       scale
     );
+
+  const {
+    isResizing,
+    handleResizeStart,
+    handleResizeMove,
+    handleResizeEnd,
+    getResizeHandles,
+    getCursorForHandle,
+  } = useResizeShape(shapes, setShapes, selectedShapeId, offset, scale);
+
+  // Get resize handles for selected shape
+  const selectedShape = useMemo(
+    () => shapes.find((s) => s.id === selectedShapeId),
+    [shapes, selectedShapeId]
+  );
+
+  const resizeHandles = useMemo(
+    () => (selectedShape ? getResizeHandles(selectedShape) : []),
+    [selectedShape, getResizeHandles]
+  );
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -102,14 +123,22 @@ export function Canvas() {
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      RedrawCanvas(ctx, shapes, selectedShapeId, offset, scale, editingTextId);
+      RedrawCanvas(
+        ctx,
+        shapes,
+        selectedShapeId,
+        offset,
+        scale,
+        editingTextId,
+        resizeHandles
+      );
     };
 
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
     return () => window.removeEventListener("resize", resizeCanvas);
-  }, [shapes, selectedShapeId, scale, offset, editingTextId]);
+  }, [shapes, selectedShapeId, scale, offset, editingTextId, resizeHandles]);
 
   const handleMouseDown = HandleMouseDown(
     canvasRef,
@@ -155,6 +184,7 @@ export function Canvas() {
       y: worldPos.y,
       width: 150,
       height: 30,
+      fontSize: 16,
       htmlContent: "",
     };
     setShapes((prev) => [...prev, newTextbox]);
@@ -167,7 +197,14 @@ export function Canvas() {
     } else if (selectedTool === "text") {
       handleTextClick(e);
     } else if (selectedTool === "select") {
-      // Single click selects (allows dragging), handled by handleDragStart
+      // Check resize handle first if a shape is selected
+      if (selectedShape) {
+        const handle = handleResizeStart(e, selectedShape);
+        if (handle) {
+          return; // Started resizing
+        }
+      }
+      // Otherwise, start drag/select
       handleDragStart(e);
     } else {
       handleMouseDown(e);
@@ -194,6 +231,11 @@ export function Canvas() {
   const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     handlePanMove(e);
 
+    if (isResizing) {
+      handleResizeMove(e);
+      return;
+    }
+
     if (isDragging) {
       handleDragMove(e);
       return;
@@ -204,6 +246,23 @@ export function Canvas() {
       if (!canvas) {
         return;
       }
+
+      // Check for resize handle hover
+      if (selectedTool === "select" && selectedShape) {
+        const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+        const hitRadius = 8 / scale;
+
+        for (const { handle, x, y } of resizeHandles) {
+          if (
+            Math.abs(worldPos.x - x) <= hitRadius &&
+            Math.abs(worldPos.y - y) <= hitRadius
+          ) {
+            canvas.style.cursor = getCursorForHandle(handle as any);
+            return;
+          }
+        }
+      }
+
       const cursor = handleShapeHover(
         e,
         canvas,
@@ -219,6 +278,7 @@ export function Canvas() {
   const onMouseUp = () => {
     handlePanEnd();
     handleDragEnd();
+    handleResizeEnd();
   };
 
   const handleTextUpdate = (updatedShape: textbox) => {
@@ -257,7 +317,7 @@ export function Canvas() {
       )}
 
       {/* Bottom-left controls: Zoom + Undo/Redo */}
-      <div className="fixed bottom-6 left-6 flex items-center gap-2 bg-[#232329] rounded-lg p-2 shadow-lg z-50">
+      <div className="fixed bottom-6 left-6 flex items-center gap-2 bg-[#1E1E24] rounded-xl p-2 shadow-2xl border border-gray-700/50 z-50">
         <ZoomControls
           zoomIn={zoomIn}
           zoomOut={zoomOut}

@@ -23,13 +23,43 @@ const drawArrowhead = (
   ctx.stroke();
 };
 
+export type ResizeHandlePoint = { handle: string; x: number; y: number };
+
+const HANDLE_SIZE = 8;
+
+const drawResizeHandles = (
+  ctx: CanvasRenderingContext2D,
+  handles: ResizeHandlePoint[]
+) => {
+  ctx.save();
+  ctx.fillStyle = "white";
+  ctx.strokeStyle = "#6366F1";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]);
+
+  handles.forEach(({ x, y }) => {
+    ctx.beginPath();
+    ctx.rect(
+      x - HANDLE_SIZE / 2,
+      y - HANDLE_SIZE / 2,
+      HANDLE_SIZE,
+      HANDLE_SIZE
+    );
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  ctx.restore();
+};
+
 export const RedrawCanvas = (
   ctx: CanvasRenderingContext2D,
   shapes: Shape[],
   selectedShapeId: string | null,
   offset: { x: number; y: number },
   scale: number,
-  editingTextId?: string | null
+  editingTextId?: string | null,
+  resizeHandles?: ResizeHandlePoint[]
 ) => {
   const canvas = ctx.canvas;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -109,17 +139,19 @@ export const RedrawCanvas = (
         const plainText = tempDiv.textContent || tempDiv.innerText || "";
 
         if (plainText) {
-          ctx.font = "16px sans-serif";
+          const fontSize = shape.fontSize || 16;
+          ctx.font = `${fontSize}px sans-serif`;
           ctx.fillStyle = "black";
           ctx.textBaseline = "top";
           ctx.setLineDash([]);
 
-          // Split into lines and render
+          // Split into lines and render with dynamic line height
+          const lineHeight = fontSize * 1.3;
           const lines = plainText.split("\n");
           let y = shape.y;
           for (const line of lines) {
             ctx.fillText(line, shape.x, y);
-            y += 20;
+            y += lineHeight;
           }
         }
       }
@@ -138,6 +170,11 @@ export const RedrawCanvas = (
     }
     ctx.restore();
   });
+
+  // Draw resize handles for selected shape
+  if (resizeHandles && resizeHandles.length > 0) {
+    drawResizeHandles(ctx, resizeHandles);
+  }
 
   ctx.restore();
 };

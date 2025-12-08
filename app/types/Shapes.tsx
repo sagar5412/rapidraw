@@ -68,6 +68,7 @@ export interface textbox {
   y: number;
   width: number;
   height: number;
+  fontSize: number;
   htmlContent: string;
 }
 
