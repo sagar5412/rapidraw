@@ -32,10 +32,44 @@ const drawResizeHandles = (
   handles: ResizeHandlePoint[]
 ) => {
   ctx.save();
+
+  // Draw selection bounding box connecting corner handles
+  const cornerHandles = handles.filter(
+    (h) =>
+      h.handle === "nw" ||
+      h.handle === "ne" ||
+      h.handle === "sw" ||
+      h.handle === "se"
+  );
+
+  if (cornerHandles.length >= 2) {
+    const xs = cornerHandles.map((h) => h.x);
+    const ys = cornerHandles.map((h) => h.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    // Draw solid selection rectangle
+    ctx.strokeStyle = "#6366F1";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+  } else if (handles.length === 2) {
+    // For line/arrow, draw line between endpoints
+    ctx.strokeStyle = "#6366F1";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(handles[0].x, handles[0].y);
+    ctx.lineTo(handles[1].x, handles[1].y);
+    ctx.stroke();
+  }
+
+  // Draw resize handles
   ctx.fillStyle = "white";
   ctx.strokeStyle = "#6366F1";
   ctx.lineWidth = 2;
-  ctx.setLineDash([]);
 
   handles.forEach(({ x, y }) => {
     ctx.beginPath();
@@ -75,15 +109,10 @@ export const RedrawCanvas = (
     }
 
     ctx.save();
-    if (shape.id === selectedShapeId) {
-      ctx.strokeStyle = "black";
-      ctx.lineWidth = 3;
-      ctx.setLineDash([5, 5]);
-    } else {
-      ctx.strokeStyle = "black";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
-    }
+    // All shapes use the same styling - selection shown via resize handles
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
 
     if (shape.type === "rectangle") {
       ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
@@ -155,18 +184,7 @@ export const RedrawCanvas = (
           }
         }
       }
-
-      // Draw selection border if selected
-      if (shape.id === selectedShapeId) {
-        ctx.setLineDash([3, 3]);
-        ctx.strokeRect(
-          shape.x - 2,
-          shape.y - 2,
-          shape.width + 4,
-          shape.height + 4
-        );
-        ctx.setLineDash([]);
-      }
+      // Selection is handled by resize handles - no separate border needed
     }
     ctx.restore();
   });
