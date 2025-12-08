@@ -29,14 +29,7 @@ export const HandleMouseDown = (
     }
 
     if (selectedTool === "select") {
-      handleSelectionMode(
-        e,
-        canvasRef,
-        shapes,
-        setSelectedShapeId,
-        offset,
-        scale
-      );
+      handleSelectionMode(e, canvas, shapes, setSelectedShapeId, offset, scale);
       return;
     }
 
