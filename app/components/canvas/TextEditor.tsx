@@ -81,11 +81,11 @@ export function TextEditor({
         onKeyDown={handleKeyDown}
         className="min-w-[50px] min-h-[24px] p-1 bg-transparent outline-none"
         style={{
-          fontSize: "16px",
+          fontSize: `${textShape.fontSize || 16}px`,
           lineHeight: "1.4",
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
-          color: "black",
+          color: textShape.strokeColor || "black",
         }}
         suppressContentEditableWarning
       />
