@@ -32,18 +32,7 @@ export const HandleMouseDown = (
       return;
     }
 
-    if (selectedTool === "eraser") {
-      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
-      const shapeToDelete = shapes.find((shape) =>
-        isPointInShape(shape, worldPos.x, worldPos.y)
-      );
-      if (shapeToDelete) {
-        setShapes((prevShapes) =>
-          prevShapes.filter((s) => s.id !== shapeToDelete.id)
-        );
-      }
-      return;
-    }
+    // Eraser is handled in Canvas.tsx for drag support
 
     // Initialize freehand shape with first point
     if (selectedTool === "freehand") {

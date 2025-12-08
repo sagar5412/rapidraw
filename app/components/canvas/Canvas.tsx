@@ -14,6 +14,7 @@ import { HistoryControls } from "./HistoryControls";
 import { TextEditor } from "./TextEditor";
 import { Toolbar } from "./Toolbar";
 import { screenToWorld } from "@/app/utils/coordinates";
+import { isPointInShape } from "@/app/utils/checkPoint";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,6 +25,7 @@ export function Canvas() {
   const [isPanning, setIsPanning] = useState(false);
   const [lastPan, setLastPan] = useState({ x: 0, y: 0 });
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [isErasing, setIsErasing] = useState(false);
 
   const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
@@ -196,6 +198,18 @@ export function Canvas() {
       handlePanStart(e);
     } else if (selectedTool === "text") {
       handleTextClick(e);
+    } else if (selectedTool === "eraser") {
+      // Start erasing - erase shape under cursor and enable drag erase
+      setIsErasing(true);
+      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+      const shapeToDelete = shapes.find((shape) =>
+        isPointInShape(shape, worldPos.x, worldPos.y)
+      );
+      if (shapeToDelete) {
+        setShapes((prevShapes) =>
+          prevShapes.filter((s) => s.id !== shapeToDelete.id)
+        );
+      }
     } else if (selectedTool === "select") {
       // Check resize handle first if a shape is selected
       if (selectedShape) {
@@ -230,6 +244,20 @@ export function Canvas() {
 
   const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     handlePanMove(e);
+
+    // Drag-erase: continuously erase shapes while dragging with eraser
+    if (isErasing && selectedTool === "eraser") {
+      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+      const shapeToDelete = shapes.find((shape) =>
+        isPointInShape(shape, worldPos.x, worldPos.y)
+      );
+      if (shapeToDelete) {
+        setShapes((prevShapes) =>
+          prevShapes.filter((s) => s.id !== shapeToDelete.id)
+        );
+      }
+      return;
+    }
 
     if (isResizing) {
       handleResizeMove(e);
@@ -279,6 +307,7 @@ export function Canvas() {
     handlePanEnd();
     handleDragEnd();
     handleResizeEnd();
+    setIsErasing(false);
   };
 
   const handleTextUpdate = (updatedShape: textbox) => {
