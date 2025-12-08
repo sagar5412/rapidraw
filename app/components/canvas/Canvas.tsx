@@ -26,6 +26,7 @@ export function Canvas() {
   const [lastPan, setLastPan] = useState({ x: 0, y: 0 });
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [isErasing, setIsErasing] = useState(false);
+  const [eraserPath, setEraserPath] = useState<{ x: number; y: number }[]>([]);
 
   const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
@@ -201,6 +202,7 @@ export function Canvas() {
     } else if (selectedTool === "eraser") {
       // Start erasing - erase shape under cursor and enable drag erase
       setIsErasing(true);
+      setEraserPath([{ x: e.clientX, y: e.clientY }]);
       const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
       const shapeToDelete = shapes.find((shape) =>
         isPointInShape(shape, worldPos.x, worldPos.y)
@@ -247,6 +249,7 @@ export function Canvas() {
 
     // Drag-erase: continuously erase shapes while dragging with eraser
     if (isErasing && selectedTool === "eraser") {
+      setEraserPath((prev) => [...prev, { x: e.clientX, y: e.clientY }]);
       const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
       const shapeToDelete = shapes.find((shape) =>
         isPointInShape(shape, worldPos.x, worldPos.y)
@@ -308,6 +311,7 @@ export function Canvas() {
     handleDragEnd();
     handleResizeEnd();
     setIsErasing(false);
+    setEraserPath([]);
   };
 
   const handleTextUpdate = (updatedShape: textbox) => {
@@ -333,6 +337,43 @@ export function Canvas() {
           selectedTool === "select" ? "default" : "crosshair"
         } z-0`}
       ></canvas>
+
+      {/* Eraser Trail Visual */}
+      {isErasing &&
+        eraserPath.length > 0 &&
+        (() => {
+          // Only show last 20 points for recent drag effect
+          const recentPath = eraserPath.slice(-20);
+          return (
+            <svg
+              className="pointer-events-none fixed top-0 left-0 w-full h-full z-50"
+              style={{ overflow: "visible" }}
+            >
+              {/* Gray trail path */}
+              <path
+                d={recentPath
+                  .map((p, i) =>
+                    i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
+                  )
+                  .join(" ")}
+                fill="none"
+                stroke="rgba(156, 163, 175, 0.5)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Small circle cursor at current position */}
+              <circle
+                cx={recentPath[recentPath.length - 1].x}
+                cy={recentPath[recentPath.length - 1].y}
+                r="4"
+                fill="white"
+                stroke="#6B7280"
+                strokeWidth="1.5"
+              />
+            </svg>
+          );
+        })()}
 
       {/* Text Editor Overlay */}
       {editingTextShape && (
