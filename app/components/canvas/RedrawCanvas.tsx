@@ -135,10 +135,54 @@ export const RedrawCanvas = (
     }
 
     if (shape.type === "rectangle") {
-      if (fillColor !== "transparent") {
-        ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+      const edges = shape.edges || "sharp";
+      const radius =
+        edges === "rounded"
+          ? Math.min(10, shape.width / 4, shape.height / 4)
+          : 0;
+
+      if (radius > 0) {
+        // Draw rounded rectangle
+        ctx.beginPath();
+        ctx.moveTo(shape.x + radius, shape.y);
+        ctx.lineTo(shape.x + shape.width - radius, shape.y);
+        ctx.arcTo(
+          shape.x + shape.width,
+          shape.y,
+          shape.x + shape.width,
+          shape.y + radius,
+          radius
+        );
+        ctx.lineTo(shape.x + shape.width, shape.y + shape.height - radius);
+        ctx.arcTo(
+          shape.x + shape.width,
+          shape.y + shape.height,
+          shape.x + shape.width - radius,
+          shape.y + shape.height,
+          radius
+        );
+        ctx.lineTo(shape.x + radius, shape.y + shape.height);
+        ctx.arcTo(
+          shape.x,
+          shape.y + shape.height,
+          shape.x,
+          shape.y + shape.height - radius,
+          radius
+        );
+        ctx.lineTo(shape.x, shape.y + radius);
+        ctx.arcTo(shape.x, shape.y, shape.x + radius, shape.y, radius);
+        ctx.closePath();
+        if (fillColor !== "transparent") {
+          ctx.fill();
+        }
+        ctx.stroke();
+      } else {
+        // Draw sharp rectangle
+        if (fillColor !== "transparent") {
+          ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+        }
+        ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
       }
-      ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
     } else if (shape.type === "circle") {
       ctx.beginPath();
       ctx.arc(
@@ -198,7 +242,10 @@ export const RedrawCanvas = (
 
         if (plainText) {
           const fontSize = shape.fontSize || 16;
-          ctx.font = `${fontSize}px sans-serif`;
+          const fontFamily = shape.fontFamily || "sans-serif";
+          const textAlign = shape.textAlign || "left";
+
+          ctx.font = `${fontSize}px ${fontFamily}`;
           ctx.fillStyle = strokeColor; // Use shape's stroke color for text
           ctx.textBaseline = "top";
           ctx.setLineDash([]);
@@ -208,7 +255,16 @@ export const RedrawCanvas = (
           const lines = plainText.split("\n");
           let y = shape.y;
           for (const line of lines) {
-            ctx.fillText(line, shape.x, y);
+            // Handle text alignment
+            let x = shape.x;
+            if (textAlign === "center") {
+              const textWidth = ctx.measureText(line).width;
+              x = shape.x + (shape.width - textWidth) / 2;
+            } else if (textAlign === "right") {
+              const textWidth = ctx.measureText(line).width;
+              x = shape.x + shape.width - textWidth;
+            }
+            ctx.fillText(line, x, y);
             y += lineHeight;
           }
         }

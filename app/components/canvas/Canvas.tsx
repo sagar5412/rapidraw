@@ -361,7 +361,13 @@ export function Canvas() {
   ) as textbox | undefined;
 
   // Handle shape style changes - update the selected shape
-  const handleShapeStyleUpdate = (updates: Partial<ShapeStyle>) => {
+  const handleShapeStyleUpdate = (
+    updates: Partial<ShapeStyle> & {
+      fontSize?: number;
+      fontFamily?: string;
+      textAlign?: "left" | "center" | "right";
+    }
+  ) => {
     if (!selectedShapeId) return;
     setShapes((prevShapes) =>
       prevShapes.map((shape) =>
@@ -391,6 +397,7 @@ export function Canvas() {
       <ShapeSettingsSidebar
         selectedShape={selectedShape || null}
         onUpdateShape={handleShapeStyleUpdate}
+        isLightTheme={isLightBackground(canvasBackground)}
       />
 
       <canvas

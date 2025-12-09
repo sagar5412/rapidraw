@@ -4,6 +4,7 @@ export interface ShapeStyle {
   fillColor?: string;
   strokeWidth?: number;
   strokeStyle?: "solid" | "dashed" | "dotted";
+  edges?: "sharp" | "rounded";
   opacity?: number;
 }
 
@@ -78,6 +79,8 @@ export interface textbox extends ShapeStyle {
   width: number;
   height: number;
   fontSize: number;
+  fontFamily?: string;
+  textAlign?: "left" | "center" | "right";
   htmlContent: string;
 }
 

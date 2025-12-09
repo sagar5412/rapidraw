@@ -82,6 +82,8 @@ export function TextEditor({
         className="min-w-[50px] min-h-[24px] p-1 bg-transparent outline-none"
         style={{
           fontSize: `${textShape.fontSize || 16}px`,
+          fontFamily: textShape.fontFamily || "sans-serif",
+          textAlign: textShape.textAlign || "left",
           lineHeight: "1.4",
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
