@@ -1,4 +1,4 @@
-import { useState, useCallback, RefObject } from "react";
+import { useState, useCallback, RefObject, useRef } from "react";
 import { Shape } from "@/app/types/Shapes";
 import { screenToWorld } from "@/app/utils/coordinates";
 import { isPointInShape } from "@/app/utils/checkPoint";
@@ -9,6 +9,7 @@ interface UseDragShapeReturn {
   handleDragStart: (e: React.MouseEvent<HTMLCanvasElement>) => boolean;
   handleDragMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   handleDragEnd: () => void;
+  getDraggedShape: () => Shape | null;
 }
 
 export function useDragShape(
@@ -21,8 +22,10 @@ export function useDragShape(
   scale: number
 ): UseDragShapeReturn {
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [draggedShapeId, setDraggedShapeId] = useState<string | null>(null);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const originalShapeRef = useRef<Shape | null>(null);
+  const draggedShapeIdRef = useRef<string | null>(null);
+  const currentOffsetRef = useRef({ dx: 0, dy: 0 });
 
   const handleDragStart = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>): boolean => {
@@ -34,8 +37,10 @@ export function useDragShape(
 
       if (clickedShape) {
         setIsDragging(true);
-        setDragStart({ x: worldPos.x, y: worldPos.y });
-        setDraggedShapeId(clickedShape.id);
+        dragStartRef.current = { x: worldPos.x, y: worldPos.y };
+        draggedShapeIdRef.current = clickedShape.id;
+        originalShapeRef.current = { ...clickedShape }; // Store original position
+        currentOffsetRef.current = { dx: 0, dy: 0 };
         setSelectedShapeId(clickedShape.id);
         return true;
       }
@@ -48,7 +53,7 @@ export function useDragShape(
 
   const handleDragMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!isDragging || !draggedShapeId) return;
+      if (!isDragging || !draggedShapeIdRef.current) return;
 
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -56,55 +61,87 @@ export function useDragShape(
       if (!ctx) return;
 
       const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
-      const dx = worldPos.x - dragStart.x;
-      const dy = worldPos.y - dragStart.y;
+      const dx = worldPos.x - dragStartRef.current.x;
+      const dy = worldPos.y - dragStartRef.current.y;
 
+      // Store current offset for later use
+      currentOffsetRef.current = { dx, dy };
+
+      // Update shapes locally (this triggers re-render but doesn't add to history)
+      // We need to update the shapes array directly for visual feedback
       setShapes((prevShapes) =>
         prevShapes.map((shape) => {
-          if (shape.id !== draggedShapeId) return shape;
+          if (
+            shape.id !== draggedShapeIdRef.current ||
+            !originalShapeRef.current
+          )
+            return shape;
+
+          const original = originalShapeRef.current;
 
           if (shape.type === "line" || shape.type === "arrow") {
+            const origLine = original as typeof shape;
             return {
               ...shape,
-              x1: shape.x1 + dx,
-              y1: shape.y1 + dy,
-              x2: shape.x2 + dx,
-              y2: shape.y2 + dy,
+              x1: origLine.x1 + dx,
+              y1: origLine.y1 + dy,
+              x2: origLine.x2 + dx,
+              y2: origLine.y2 + dy,
             };
           }
 
           if (shape.type === "freehand") {
+            const origFreehand = original as typeof shape;
             return {
               ...shape,
-              points: shape.points.map((p) => ({
+              points: origFreehand.points.map((p) => ({
                 x: p.x + dx,
                 y: p.y + dy,
               })),
             };
           }
 
+          const origShape = original as { x: number; y: number };
           return {
             ...shape,
-            x: shape.x + dx,
-            y: shape.y + dy,
+            x: origShape.x + dx,
+            y: origShape.y + dy,
           };
         })
       );
-
-      setDragStart({ x: worldPos.x, y: worldPos.y });
     },
-    [isDragging, draggedShapeId, canvasRef, offset, scale, dragStart, setShapes]
+    [isDragging, canvasRef, offset, scale, setShapes]
   );
 
   const handleDragEnd = useCallback(() => {
+    // Only record to history if there was actual movement
+    if (
+      isDragging &&
+      originalShapeRef.current &&
+      (currentOffsetRef.current.dx !== 0 || currentOffsetRef.current.dy !== 0)
+    ) {
+      // The final position is already set in setShapes during handleDragMove
+      // Since we used the original position as reference, the history will have
+      // the correct start and end states
+    }
+
     setIsDragging(false);
-    setDraggedShapeId(null);
-  }, []);
+    draggedShapeIdRef.current = null;
+    originalShapeRef.current = null;
+    currentOffsetRef.current = { dx: 0, dy: 0 };
+  }, [isDragging]);
+
+  // Helper to get current dragged shape for rendering
+  const getDraggedShape = useCallback((): Shape | null => {
+    if (!isDragging || !draggedShapeIdRef.current) return null;
+    return shapes.find((s) => s.id === draggedShapeIdRef.current) || null;
+  }, [isDragging, shapes]);
 
   return {
     isDragging,
     handleDragStart,
     handleDragMove,
     handleDragEnd,
+    getDraggedShape,
   };
 }

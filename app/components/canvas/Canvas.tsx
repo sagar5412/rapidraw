@@ -20,7 +20,16 @@ import { ShapeSettingsSidebar } from "@/app/components/sidebar/ShapeSettingsSide
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { shapes, setShapes, undo, redo, canUndo, canRedo } = useHistory([]);
+  const {
+    shapes,
+    setShapes,
+    setShapesWithoutHistory,
+    commitToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useHistory([]);
   const [selectedTool, setSelectedTool] = useState<selectedShapes>("rectangle");
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -59,7 +68,7 @@ export function Canvas() {
     useDragShape(
       canvasRef,
       shapes,
-      setShapes,
+      setShapesWithoutHistory,
       selectedShapeId,
       setSelectedShapeId,
       offset,
@@ -73,7 +82,13 @@ export function Canvas() {
     handleResizeEnd,
     getResizeHandles,
     getCursorForHandle,
-  } = useResizeShape(shapes, setShapes, selectedShapeId, offset, scale);
+  } = useResizeShape(
+    shapes,
+    setShapesWithoutHistory,
+    selectedShapeId,
+    offset,
+    scale
+  );
 
   // Get resize handles for selected shape
   const selectedShape = useMemo(
@@ -329,6 +344,12 @@ export function Canvas() {
 
   const onMouseUp = () => {
     handlePanEnd();
+
+    // Commit to history if we were dragging or resizing
+    if (isDragging || isResizing) {
+      commitToHistory();
+    }
+
     handleDragEnd();
     handleResizeEnd();
 
