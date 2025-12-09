@@ -106,6 +106,13 @@ export function Canvas() {
     return () => window.removeEventListener("wheel", handleWheel);
   }, [handleWheelZoom]);
 
+  // Deselect shape when switching to a different tool
+  useEffect(() => {
+    if (selectedTool !== "select") {
+      setSelectedShapeId(null);
+    }
+  }, [selectedTool]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore keyboard shortcuts when editing text
