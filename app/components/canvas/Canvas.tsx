@@ -30,7 +30,7 @@ export function Canvas() {
     canUndo,
     canRedo,
   } = useHistory([]);
-  const [selectedTool, setSelectedTool] = useState<selectedShapes>("rectangle");
+  const [selectedTool, setSelectedTool] = useState<selectedShapes>("select");
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
@@ -210,7 +210,8 @@ export function Canvas() {
     setSelectedShapeId,
     offset,
     scale,
-    defaultColor
+    defaultColor,
+    () => setSelectedTool("select") // Switch back to select after drawing
   );
 
   const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
