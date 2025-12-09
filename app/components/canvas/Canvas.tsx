@@ -283,6 +283,7 @@ export function Canvas() {
           worldPos.y <= s.y + s.height
       );
       if (clickedTextbox && clickedTextbox.type === "textbox") {
+        setSelectedShapeId(null); // Hide selection box while editing
         setEditingTextId(clickedTextbox.id);
       }
     }
