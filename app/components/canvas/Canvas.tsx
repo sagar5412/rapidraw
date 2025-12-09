@@ -243,6 +243,11 @@ export function Canvas() {
   };
 
   const onMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Don't process canvas clicks while editing text
+    if (editingTextId) {
+      return;
+    }
+
     if (e.button === 1 || e.shiftKey) {
       handlePanStart(e);
     } else if (selectedTool === "text") {
@@ -507,6 +512,7 @@ export function Canvas() {
           scale={scale}
           onUpdate={handleTextUpdate}
           onClose={() => setEditingTextId(null)}
+          isLightTheme={isLightBackground(canvasBackground)}
         />
       )}
 

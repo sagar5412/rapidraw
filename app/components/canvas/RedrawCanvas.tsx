@@ -33,7 +33,7 @@ const drawResizeHandles = (
 ) => {
   ctx.save();
 
-  // Draw selection bounding box connecting corner handles
+  // Draw selection bounding box connecting handles
   const cornerHandles = handles.filter(
     (h) =>
       h.handle === "nw" ||
@@ -234,38 +234,155 @@ export const RedrawCanvas = (
       }
       ctx.stroke();
     } else if (shape.type === "textbox") {
-      // Extract plain text from HTML content (only works in browser)
-      if (typeof document !== "undefined") {
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = shape.htmlContent || "";
-        const plainText = tempDiv.textContent || tempDiv.innerText || "";
+      // Render styled text content on canvas using segment-based approach
+      if (typeof document !== "undefined" && shape.htmlContent) {
+        const fontSize = shape.fontSize || 16;
+        const fontFamily = shape.fontFamily || "sans-serif";
+        const textAlign = shape.textAlign || "left";
+        const lineHeight = fontSize * 1.4;
 
-        if (plainText) {
-          const fontSize = shape.fontSize || 16;
-          const fontFamily = shape.fontFamily || "sans-serif";
-          const textAlign = shape.textAlign || "left";
+        ctx.textBaseline = "top";
+        ctx.setLineDash([]);
 
-          ctx.font = `${fontSize}px ${fontFamily}`;
-          ctx.fillStyle = strokeColor; // Use shape's stroke color for text
-          ctx.textBaseline = "top";
-          ctx.setLineDash([]);
+        // Extract styled segments from HTML
+        interface TextSegment {
+          text: string;
+          color: string;
+          bold: boolean;
+          italic: boolean;
+          underline: boolean;
+        }
 
-          // Split into lines and render with dynamic line height
-          const lineHeight = fontSize * 1.3;
-          const lines = plainText.split("\n");
-          let y = shape.y;
-          for (const line of lines) {
-            // Handle text alignment
-            let x = shape.x;
-            if (textAlign === "center") {
-              const textWidth = ctx.measureText(line).width;
-              x = shape.x + (shape.width - textWidth) / 2;
-            } else if (textAlign === "right") {
-              const textWidth = ctx.measureText(line).width;
-              x = shape.x + shape.width - textWidth;
+        const extractSegments = (html: string): TextSegment[] => {
+          const segments: TextSegment[] = [];
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = html;
+
+          const walk = (
+            node: Node,
+            styles: {
+              color: string;
+              bold: boolean;
+              italic: boolean;
+              underline: boolean;
             }
-            ctx.fillText(line, x, y);
-            y += lineHeight;
+          ) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              const text = node.textContent || "";
+              if (text) {
+                segments.push({ text, ...styles });
+              }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              const el = node as HTMLElement;
+              const tag = el.tagName.toLowerCase();
+
+              const newStyles = { ...styles };
+
+              // Check for color
+              if (tag === "font" && el.getAttribute("color")) {
+                newStyles.color = el.getAttribute("color") || styles.color;
+              }
+              if (el.style.color) {
+                newStyles.color = el.style.color;
+              }
+
+              // Check formatting
+              if (tag === "b" || tag === "strong") newStyles.bold = true;
+              if (tag === "i" || tag === "em") newStyles.italic = true;
+              if (tag === "u") newStyles.underline = true;
+
+              // Process children
+              for (const child of Array.from(el.childNodes)) {
+                walk(child, newStyles);
+              }
+
+              // Add newline for block elements
+              if (
+                (tag === "div" || tag === "p" || tag === "br") &&
+                segments.length > 0
+              ) {
+                // Only add if not already ending with newline
+                const lastSeg = segments[segments.length - 1];
+                if (lastSeg && !lastSeg.text.endsWith("\n")) {
+                  segments.push({ text: "\n", ...styles });
+                }
+              }
+            }
+          };
+
+          walk(tempDiv, {
+            color: strokeColor,
+            bold: false,
+            italic: false,
+            underline: false,
+          });
+          return segments;
+        };
+
+        const segments = extractSegments(shape.htmlContent);
+
+        // Render segments
+        let x = shape.x;
+        let y = shape.y;
+
+        for (const seg of segments) {
+          // Handle newline
+          if (seg.text === "\n" || seg.text.includes("\n")) {
+            const parts = seg.text.split("\n");
+            for (let i = 0; i < parts.length; i++) {
+              if (i > 0) {
+                y += lineHeight;
+                x = shape.x;
+              }
+              const part = parts[i];
+              if (part) {
+                // Build font
+                let font = "";
+                if (seg.italic) font += "italic ";
+                if (seg.bold) font += "bold ";
+                font += `${fontSize}px ${fontFamily}`;
+
+                ctx.font = font;
+                ctx.fillStyle = seg.color;
+                ctx.fillText(part, x, y);
+
+                // Underline
+                if (seg.underline) {
+                  const w = ctx.measureText(part).width;
+                  ctx.beginPath();
+                  ctx.moveTo(x, y + fontSize);
+                  ctx.lineTo(x + w, y + fontSize);
+                  ctx.strokeStyle = seg.color;
+                  ctx.lineWidth = 1;
+                  ctx.stroke();
+                }
+
+                x += ctx.measureText(part).width;
+              }
+            }
+          } else {
+            // Build font
+            let font = "";
+            if (seg.italic) font += "italic ";
+            if (seg.bold) font += "bold ";
+            font += `${fontSize}px ${fontFamily}`;
+
+            ctx.font = font;
+            ctx.fillStyle = seg.color;
+            ctx.fillText(seg.text, x, y);
+
+            // Underline
+            if (seg.underline) {
+              const w = ctx.measureText(seg.text).width;
+              ctx.beginPath();
+              ctx.moveTo(x, y + fontSize);
+              ctx.lineTo(x + w, y + fontSize);
+              ctx.strokeStyle = seg.color;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+
+            x += ctx.measureText(seg.text).width;
           }
         }
       }

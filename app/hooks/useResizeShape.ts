@@ -49,11 +49,7 @@ export function useResizeShape(
       const handles: { handle: ResizeHandle; x: number; y: number }[] = [];
       const hs = HANDLE_SIZE / 2;
 
-      if (
-        shape.type === "rectangle" ||
-        shape.type === "diamond" ||
-        shape.type === "textbox"
-      ) {
+      if (shape.type === "rectangle" || shape.type === "diamond") {
         const { x, y, width, height } = shape;
         handles.push(
           { handle: "nw", x: x, y: y },
@@ -63,6 +59,15 @@ export function useResizeShape(
           { handle: "e", x: x + width, y: y + height / 2 },
           { handle: "sw", x: x, y: y + height },
           { handle: "s", x: x + width / 2, y: y + height },
+          { handle: "se", x: x + width, y: y + height }
+        );
+      } else if (shape.type === "textbox") {
+        // Text gets 4 corner handles like Excalidraw
+        const { x, y, width, height } = shape;
+        handles.push(
+          { handle: "nw", x: x, y: y },
+          { handle: "ne", x: x + width, y: y },
+          { handle: "sw", x: x, y: y + height },
           { handle: "se", x: x + width, y: y + height }
         );
       } else if (shape.type === "circle") {
@@ -212,11 +217,57 @@ export function useResizeShape(
 
             // Scale fontSize for textbox based on height ratio
             if (shape.type === "textbox" && originalShape.type === "textbox") {
-              const heightRatio = newHeight / originalShape.height;
+              const origFontSize = originalShape.fontSize || 16;
+              const origHeight = originalShape.height || 24;
+              const heightRatio = newHeight / origHeight;
               const newFontSize = Math.max(
                 8,
-                Math.round(originalShape.fontSize * heightRatio)
+                Math.round(origFontSize * heightRatio)
               );
+
+              // Recalculate width based on new font size if text exists
+              if (typeof document !== "undefined" && shape.htmlContent) {
+                const tempCanvas = document.createElement("canvas");
+                const ctx = tempCanvas.getContext("2d");
+                if (ctx) {
+                  const fontFamily = shape.fontFamily || "sans-serif";
+                  ctx.font = `${newFontSize}px ${fontFamily}`;
+
+                  // Extract plain text
+                  const tempDiv = document.createElement("div");
+                  const normalizedContent = shape.htmlContent
+                    .replace(/<br\s*\/?>/gi, "\n")
+                    .replace(/<\/div>/gi, "\n")
+                    .replace(/<\/p>/gi, "\n");
+                  tempDiv.innerHTML = normalizedContent;
+                  const plainText = tempDiv.textContent || "";
+                  const lines = plainText.split("\n");
+
+                  // Get max line width
+                  let maxWidth = 0;
+                  for (const line of lines) {
+                    const width = ctx.measureText(line || " ").width;
+                    if (width > maxWidth) maxWidth = width;
+                  }
+
+                  // Calculate new dimensions based on text with scaled font
+                  const calculatedWidth = Math.max(50, maxWidth + 10);
+                  const calculatedHeight = Math.max(
+                    24,
+                    lines.length * newFontSize * 1.4
+                  );
+
+                  return {
+                    ...shape,
+                    x: newX,
+                    y: newY,
+                    width: calculatedWidth,
+                    height: calculatedHeight,
+                    fontSize: newFontSize,
+                  };
+                }
+              }
+
               return {
                 ...shape,
                 x: newX,
