@@ -44,8 +44,8 @@ export function Canvas() {
   } | null>(null);
 
   // Screen settings
-  const [theme, setTheme] = useState<"default" | "light" | "dark">("default");
-  const [canvasBackground, setCanvasBackground] = useState("#F5F5F5");
+  const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
+  const [canvasBackground, setCanvasBackground] = useState("");
 
   // Calculate default color based on background (light bg = black, dark bg = white)
   const isLightBackground = (color: string) => {
@@ -100,6 +100,18 @@ export function Canvas() {
     () => (selectedShape ? getResizeHandles(selectedShape) : []),
     [selectedShape, getResizeHandles]
   );
+
+  // Set initial background based on system preference on mount
+  useEffect(() => {
+    if (
+      theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia
+    ) {
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setCanvasBackground(isDark ? "#1a1a1a" : "#FFFFFF");
+    }
+  }, []); // Only run on mount
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -409,6 +421,16 @@ export function Canvas() {
       )
     );
   };
+
+  // Don't render until background is determined (prevents flash)
+  if (!canvasBackground) {
+    return (
+      <div
+        className="h-screen w-screen"
+        style={{ backgroundColor: "#1a1a1a" }}
+      />
+    );
+  }
 
   return (
     <div

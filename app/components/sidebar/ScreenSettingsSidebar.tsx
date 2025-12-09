@@ -1,28 +1,31 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Shape } from "@/app/types/Shapes";
 
 interface ScreenSettingsSidebarProps {
-  theme: "default" | "light" | "dark";
-  setTheme: (theme: "default" | "light" | "dark") => void;
+  theme: "system" | "light" | "dark";
+  setTheme: (theme: "system" | "light" | "dark") => void;
   canvasBackground: string;
   setCanvasBackground: (color: string) => void;
   shapes: Shape[];
   setShapes: React.Dispatch<React.SetStateAction<Shape[]>>;
 }
 
-const THEME_BACKGROUNDS = {
-  default: "#F5F5F5",
-  light: "#FFFFFF",
-  dark: "#1a1a1a",
-};
-
-const BACKGROUND_PRESETS = [
+// Light background presets (for light theme) - 5 colors
+const LIGHT_BACKGROUNDS = [
   "#FFFFFF",
+  "#FAFAFA",
   "#F5F5F5",
+  "#EEEEEE",
   "#E5E5E5",
+];
+
+// Dark background presets (for dark theme) - 5 colors
+const DARK_BACKGROUNDS = [
   "#1a1a1a",
+  "#1E1E24",
   "#121212",
+  "#0D0D0D",
   "#000000",
 ];
 
@@ -53,6 +56,16 @@ const isLightColor = (color: string) =>
 const isDarkColor = (color: string) =>
   DARK_COLORS.includes(color.toUpperCase()) || color.toLowerCase() === "black";
 
+// Detect system preference
+const getSystemPreference = (): "light" | "dark" => {
+  if (typeof window !== "undefined" && window.matchMedia) {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+  return "light";
+};
+
 export function ScreenSettingsSidebar({
   theme,
   setTheme,
@@ -62,11 +75,41 @@ export function ScreenSettingsSidebar({
   setShapes,
 }: ScreenSettingsSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [customHex, setCustomHex] = useState("");
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const [systemPreference, setSystemPreference] = useState<"light" | "dark">(
+    "light"
+  );
 
-  const handleThemeChange = (newTheme: "default" | "light" | "dark") => {
-    const isLightTheme = newTheme === "light" || newTheme === "default";
-    const isDarkTheme = newTheme === "dark";
+  // Detect system preference on mount and listen for changes
+  useEffect(() => {
+    setSystemPreference(getSystemPreference());
+
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = (e: MediaQueryListEvent) => {
+        setSystemPreference(e.matches ? "dark" : "light");
+        // If on system mode, update theme automatically
+        if (theme === "system") {
+          const newPref = e.matches ? "dark" : "light";
+          setCanvasBackground(newPref === "dark" ? "#1a1a1a" : "#FFFFFF");
+        }
+      };
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [theme, setCanvasBackground]);
+
+  // Get effective theme (resolved system preference)
+  const effectiveTheme = theme === "system" ? systemPreference : theme;
+  const isLightTheme = effectiveTheme === "light";
+
+  // Get background presets based on effective theme
+  const backgroundPresets = isLightTheme ? LIGHT_BACKGROUNDS : DARK_BACKGROUNDS;
+
+  const handleThemeChange = (newTheme: "system" | "light" | "dark") => {
+    const resolvedTheme = newTheme === "system" ? systemPreference : newTheme;
+    const isLightNew = resolvedTheme === "light";
+    const isDarkNew = resolvedTheme === "dark";
 
     // Update shapes for contrast
     setShapes((prevShapes) =>
@@ -74,10 +117,10 @@ export function ScreenSettingsSidebar({
         const currentColor =
           shape.strokeColor || ("color" in shape ? shape.color : "#000000");
 
-        if (isLightTheme && isLightColor(currentColor)) {
+        if (isLightNew && isLightColor(currentColor)) {
           // Light theme + light shape = change to black
           return { ...shape, strokeColor: "#000000" };
-        } else if (isDarkTheme && isDarkColor(currentColor)) {
+        } else if (isDarkNew && isDarkColor(currentColor)) {
           // Dark theme + dark shape = change to white
           return { ...shape, strokeColor: "#FFFFFF" };
         }
@@ -86,13 +129,9 @@ export function ScreenSettingsSidebar({
     );
 
     setTheme(newTheme);
-    setCanvasBackground(THEME_BACKGROUNDS[newTheme]);
-  };
-
-  const handleCustomHex = () => {
-    if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
-      setCanvasBackground(customHex);
-    }
+    // Set default background for the theme
+    const defaultBg = resolvedTheme === "dark" ? "#1a1a1a" : "#FFFFFF";
+    setCanvasBackground(defaultBg);
   };
 
   return (
@@ -108,71 +147,81 @@ export function ScreenSettingsSidebar({
 
       {/* Sidebar Panel */}
       {isOpen && (
-        <div className="fixed left-4 top-32 w-56 bg-[#1E1E24] rounded-xl p-4 shadow-2xl border border-gray-700/50 z-40">
-          <h3 className="text-white text-sm font-semibold mb-4">
-            Screen Settings
-          </h3>
+        <>
+          {/* Invisible backdrop to close on click outside */}
+          <div
+            className="fixed inset-0 z-35"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="fixed left-4 top-32 w-56 bg-[#1E1E24] rounded-xl p-4 shadow-2xl border border-gray-700/50 z-40">
+            <h3 className="text-white text-sm font-semibold mb-4">
+              Screen Settings
+            </h3>
 
-          {/* Theme */}
-          <div className="mb-4">
-            <label className="text-gray-400 text-xs mb-2 block">Theme</label>
-            <div className="flex gap-2">
-              {(["default", "light", "dark"] as const).map((t) => (
+            {/* Theme */}
+            <div className="mb-4">
+              <label className="text-gray-400 text-xs mb-2 block">Theme</label>
+              <div className="flex gap-2">
+                {(["system", "light", "dark"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => handleThemeChange(t)}
+                    className={`px-3 py-1.5 rounded-lg text-xs capitalize transition-all ${
+                      theme === t
+                        ? "bg-[#6366F1] text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Separator */}
+            <hr className="border-gray-700 my-3" />
+
+            {/* Background Color */}
+            <div className="mb-4">
+              <label className="text-gray-400 text-xs mb-2 block">
+                Background
+              </label>
+              <div className="flex items-center gap-1 flex-wrap">
+                {backgroundPresets.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setCanvasBackground(color)}
+                    className={`w-6 h-6 rounded-md border-2 transition-all ${
+                      canvasBackground === color
+                        ? "border-[#6366F1] scale-110"
+                        : "border-gray-600 hover:border-gray-400"
+                    }`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+                {/* Color Picker */}
                 <button
-                  key={t}
-                  onClick={() => handleThemeChange(t)}
-                  className={`px-3 py-1.5 rounded-lg text-xs capitalize transition-all ${
-                    theme === t
-                      ? "bg-[#6366F1] text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
+                  onClick={() => colorInputRef.current?.click()}
+                  className="w-6 h-6 rounded-md border-2 border-gray-600 hover:border-gray-400 transition-all relative overflow-hidden"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #E5E5E5 0%, #1a1a1a 100%)",
+                  }}
+                  title="Custom color"
                 >
-                  {t}
+                  <input
+                    ref={colorInputRef}
+                    type="color"
+                    value={canvasBackground}
+                    onChange={(e) => setCanvasBackground(e.target.value)}
+                    className="absolute opacity-0 w-full h-full cursor-pointer"
+                  />
                 </button>
-              ))}
+              </div>
             </div>
           </div>
-
-          {/* Background Color */}
-          <div className="mb-4">
-            <label className="text-gray-400 text-xs mb-2 block">
-              Background
-            </label>
-            <div className="grid grid-cols-6 gap-1.5 mb-2">
-              {BACKGROUND_PRESETS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setCanvasBackground(color)}
-                  className={`w-7 h-7 rounded-md border-2 transition-all ${
-                    canvasBackground === color
-                      ? "border-[#6366F1] scale-110"
-                      : "border-gray-600 hover:border-gray-400"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  title={color}
-                />
-              ))}
-            </div>
-
-            {/* Custom Hex Input */}
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                placeholder="#RRGGBB"
-                value={customHex}
-                onChange={(e) => setCustomHex(e.target.value.toUpperCase())}
-                className="flex-1 bg-gray-700 text-white text-xs px-2 py-1.5 rounded-md border border-gray-600 focus:border-[#6366F1] outline-none"
-                maxLength={7}
-              />
-              <button
-                onClick={handleCustomHex}
-                className="px-2 py-1.5 bg-[#6366F1] text-white text-xs rounded-md hover:bg-[#5558E3] transition-colors"
-              >
-                Set
-              </button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
     </>
   );
