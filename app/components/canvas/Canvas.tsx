@@ -456,9 +456,17 @@ export function Canvas() {
   const onMouseUp = () => {
     handlePanEnd();
 
-    // Commit to history if we were dragging or resizing
+    // Commit to history and emit for collaboration if we were dragging or resizing
     if (isDragging || isResizing) {
       commitToHistory();
+
+      // Emit shape update for collaboration after drag/resize
+      if (isCollaborating && selectedShapeId) {
+        const updatedShape = shapes.find((s) => s.id === selectedShapeId);
+        if (updatedShape) {
+          emitShapeUpdate(selectedShapeId, updatedShape);
+        }
+      }
     }
 
     handleDragEnd();
