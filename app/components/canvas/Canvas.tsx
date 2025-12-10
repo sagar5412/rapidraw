@@ -56,15 +56,21 @@ export function Canvas() {
     emitShapeAdd,
     emitShapeUpdate,
     emitShapeDelete,
+    emitShapesSync,
     emitCursorMove,
     setOnRemoteShapeAdd,
     setOnRemoteShapeUpdate,
     setOnRemoteShapeDelete,
+    setOnRemoteShapesSync,
     setOnRoomState,
   } = useCollaboration();
 
   // Track if update is from remote to prevent re-emission
   const isRemoteUpdateRef = useRef(false);
+
+  // Ref to track latest shapes for undo/redo sync
+  const shapesRef = useRef(shapes);
+  shapesRef.current = shapes;
 
   // Calculate default color based on background (light bg = black, dark bg = white)
   const isLightBackground = (color: string) => {
@@ -171,19 +177,47 @@ export function Canvas() {
       }
     });
 
+    // Handle full shapes sync (from undo/redo)
+    setOnRemoteShapesSync((shapes: Shape[]) => {
+      isRemoteUpdateRef.current = true;
+      setShapes(shapes);
+      isRemoteUpdateRef.current = false;
+    });
+
     return () => {
       setOnRemoteShapeAdd(null);
       setOnRemoteShapeUpdate(null);
       setOnRemoteShapeDelete(null);
+      setOnRemoteShapesSync(null);
       setOnRoomState(null);
     };
   }, [
     setOnRemoteShapeAdd,
     setOnRemoteShapeUpdate,
     setOnRemoteShapeDelete,
+    setOnRemoteShapesSync,
     setOnRoomState,
     setShapes,
   ]);
+
+  // Wrapper functions for undo/redo with collaboration sync
+  const handleUndo = useCallback(() => {
+    undo();
+    if (isCollaborating) {
+      setTimeout(() => {
+        emitShapesSync(shapesRef.current);
+      }, 50);
+    }
+  }, [undo, isCollaborating, emitShapesSync]);
+
+  const handleRedo = useCallback(() => {
+    redo();
+    if (isCollaborating) {
+      setTimeout(() => {
+        emitShapesSync(shapesRef.current);
+      }, 50);
+    }
+  }, [redo, isCollaborating, emitShapesSync]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -232,21 +266,29 @@ export function Canvas() {
       if ((e.ctrlKey || e.metaKey) && e.key === "z") {
         e.preventDefault();
         if (e.shiftKey) {
-          redo();
+          handleRedo();
         } else {
-          undo();
+          handleUndo();
         }
       }
 
       if ((e.ctrlKey || e.metaKey) && e.key === "y") {
         e.preventDefault();
-        redo();
+        handleRedo();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedShapeId, undo, redo, setShapes, editingTextId]);
+  }, [
+    selectedShapeId,
+    handleUndo,
+    handleRedo,
+    setShapes,
+    editingTextId,
+    emitShapeDelete,
+    isCollaborating,
+  ]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -667,8 +709,8 @@ export function Canvas() {
         />
         <div className="w-px h-6 bg-gray-600 mx-1"></div>
         <HistoryControls
-          undo={undo}
-          redo={redo}
+          undo={handleUndo}
+          redo={handleRedo}
           canUndo={canUndo}
           canRedo={canRedo}
         />
