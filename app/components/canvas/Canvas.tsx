@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Shape, textbox, ShapeStyle } from "@/app/types/Shapes";
 import { selectedShapes } from "@/app/types/Shapes";
 import { RedrawCanvas } from "./RedrawCanvas";
@@ -17,6 +17,9 @@ import { screenToWorld } from "@/app/utils/coordinates";
 import { isPointInShape } from "@/app/utils/checkPoint";
 import { ScreenSettingsSidebar } from "@/app/components/sidebar/ScreenSettingsSidebar";
 import { ShapeSettingsSidebar } from "@/app/components/sidebar/ShapeSettingsSidebar";
+import { useCollaboration } from "@/app/context/CollaborationContext";
+import { CollaborationPanel } from "@/app/components/ui/CollaborationPanel";
+import { UserCursors } from "@/app/components/canvas/UserCursors";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -46,6 +49,22 @@ export function Canvas() {
   // Screen settings
   const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
   const [canvasBackground, setCanvasBackground] = useState("");
+
+  // Collaboration
+  const {
+    isCollaborating,
+    emitShapeAdd,
+    emitShapeUpdate,
+    emitShapeDelete,
+    emitCursorMove,
+    setOnRemoteShapeAdd,
+    setOnRemoteShapeUpdate,
+    setOnRemoteShapeDelete,
+    setOnRoomState,
+  } = useCollaboration();
+
+  // Track if update is from remote to prevent re-emission
+  const isRemoteUpdateRef = useRef(false);
 
   // Calculate default color based on background (light bg = black, dark bg = white)
   const isLightBackground = (color: string) => {
@@ -113,6 +132,59 @@ export function Canvas() {
     }
   }, []); // Only run on mount
 
+  // Setup collaboration handlers
+  useEffect(() => {
+    // Handle remote shape additions
+    setOnRemoteShapeAdd((shape: Shape) => {
+      isRemoteUpdateRef.current = true;
+      setShapes((prev) => {
+        if (prev.find((s) => s.id === shape.id)) return prev;
+        return [...prev, shape];
+      });
+      isRemoteUpdateRef.current = false;
+    });
+
+    // Handle remote shape updates
+    setOnRemoteShapeUpdate((shapeId: string, updates: Partial<Shape>) => {
+      isRemoteUpdateRef.current = true;
+      setShapes((prev) =>
+        prev.map((s) =>
+          s.id === shapeId ? ({ ...s, ...updates } as Shape) : s
+        )
+      );
+      isRemoteUpdateRef.current = false;
+    });
+
+    // Handle remote shape deletions
+    setOnRemoteShapeDelete((shapeId: string) => {
+      isRemoteUpdateRef.current = true;
+      setShapes((prev) => prev.filter((s) => s.id !== shapeId));
+      isRemoteUpdateRef.current = false;
+    });
+
+    // Handle room state (initial sync)
+    setOnRoomState((state) => {
+      if (state.shapes.length > 0) {
+        isRemoteUpdateRef.current = true;
+        setShapes(state.shapes);
+        isRemoteUpdateRef.current = false;
+      }
+    });
+
+    return () => {
+      setOnRemoteShapeAdd(null);
+      setOnRemoteShapeUpdate(null);
+      setOnRemoteShapeDelete(null);
+      setOnRoomState(null);
+    };
+  }, [
+    setOnRemoteShapeAdd,
+    setOnRemoteShapeUpdate,
+    setOnRemoteShapeDelete,
+    setOnRoomState,
+    setShapes,
+  ]);
+
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       const isZoomGesture = e.ctrlKey || e.metaKey;
@@ -147,6 +219,10 @@ export function Canvas() {
 
       if ((e.key === "Delete" || e.key === "Backspace") && selectedShapeId) {
         e.preventDefault();
+        // Emit deletion for collaboration
+        if (isCollaborating && !isRemoteUpdateRef.current) {
+          emitShapeDelete(selectedShapeId);
+        }
         setShapes((prevShapes) =>
           prevShapes.filter((shape) => shape.id !== selectedShapeId)
         );
@@ -211,7 +287,13 @@ export function Canvas() {
     offset,
     scale,
     defaultColor,
-    () => setSelectedTool("select") // Switch back to select after drawing
+    () => setSelectedTool("select"), // Switch back to select after drawing
+    (shape) => {
+      // Emit for collaboration
+      if (isCollaborating) {
+        emitShapeAdd(shape);
+      }
+    }
   );
 
   const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -252,6 +334,10 @@ export function Canvas() {
       strokeColor: defaultColor,
     };
     setShapes((prev) => [...prev, newTextbox]);
+    // Emit for collaboration
+    if (isCollaborating) {
+      emitShapeAdd(newTextbox);
+    }
     setEditingTextId(newTextbox.id);
   };
 
@@ -304,6 +390,12 @@ export function Canvas() {
 
   const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     handlePanMove(e);
+
+    // Emit cursor position for collaboration
+    if (isCollaborating) {
+      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+      emitCursorMove(worldPos);
+    }
 
     // Drag-erase: track path only, delete on mouse up
     if (isErasing && selectedTool === "eraser") {
@@ -387,6 +479,10 @@ export function Canvas() {
       }
 
       if (shapesToDelete.size > 0) {
+        // Emit deletions for collaboration
+        if (isCollaborating) {
+          shapesToDelete.forEach((id) => emitShapeDelete(id));
+        }
         setShapes((prevShapes) =>
           prevShapes.filter((s) => !shapesToDelete.has(s.id))
         );
@@ -401,6 +497,10 @@ export function Canvas() {
     setShapes((prevShapes) =>
       prevShapes.map((s) => (s.id === updatedShape.id ? updatedShape : s))
     );
+    // Emit for collaboration
+    if (isCollaborating) {
+      emitShapeUpdate(updatedShape.id, updatedShape);
+    }
   };
 
   const editingTextShape = shapes.find(
@@ -421,6 +521,10 @@ export function Canvas() {
         shape.id === selectedShapeId ? { ...shape, ...updates } : shape
       )
     );
+    // Emit for collaboration
+    if (isCollaborating) {
+      emitShapeUpdate(selectedShapeId, updates);
+    }
   };
 
   // Don't render until background is determined (prevents flash)
@@ -439,6 +543,12 @@ export function Canvas() {
       style={{ backgroundColor: canvasBackground }}
     >
       <Toolbar selectedTool={selectedTool} setSelectedTool={setSelectedTool} />
+
+      {/* Collaboration Panel */}
+      <CollaborationPanel />
+
+      {/* Remote User Cursors */}
+      {isCollaborating && <UserCursors offset={offset} scale={scale} />}
 
       {/* Screen Settings Sidebar */}
       <ScreenSettingsSidebar

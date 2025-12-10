@@ -3,15 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npx ts-node --project tsconfig.server.json server.ts",
+    "dev:next": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_ENV=production npx ts-node --project tsconfig.server.json server.ts",
     "lint": "eslint"
   },
   "dependencies": {
     "next": "16.0.6",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -21,6 +24,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.6",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

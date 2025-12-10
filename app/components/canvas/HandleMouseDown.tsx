@@ -16,7 +16,8 @@ export const HandleMouseDown = (
   offset: { x: number; y: number },
   scale: number,
   defaultColor: string = "#000000", // Default color based on background
-  onDrawComplete?: () => void // Callback after drawing completes
+  onDrawComplete?: () => void, // Callback after drawing completes
+  onShapeCreated?: (shape: Shape) => void // Callback for collaboration
 ) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const startWorld = screenToWorld(e.clientX, e.clientY, offset, scale);
@@ -165,6 +166,8 @@ export const HandleMouseDown = (
       document.removeEventListener("mouseup", handleMouseUp);
       if (currentShape) {
         setShapes((prevShapes) => [...prevShapes, currentShape!]);
+        // Emit for collaboration
+        onShapeCreated?.(currentShape);
         // Switch back to select tool after drawing (except for freehand which allows continuous drawing)
         if (selectedTool !== "freehand") {
           onDrawComplete?.();
