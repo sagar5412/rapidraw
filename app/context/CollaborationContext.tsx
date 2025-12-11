@@ -177,7 +177,31 @@ export function CollaborationProvider({
     leaveRoom();
     setIsCollaborating(false);
     setRemoteCursors(new Map());
+    // Remove room param from URL
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("room");
+      window.history.replaceState({}, "", url.pathname);
+    }
   }, [leaveRoom]);
+
+  // Auto-join room from URL parameter
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get("room");
+
+    if (roomParam && isConnected && !isCollaborating && !roomId) {
+      // Auto-join the room from URL
+      const user: CollaborationUser = {
+        id: "",
+        name: generateAnonymousName(),
+        color: generateUserColor(),
+      };
+      joinRoom(roomParam.toUpperCase(), user);
+    }
+  }, [isConnected, isCollaborating, roomId, joinRoom]);
 
   // Handler setters
   const setOnRemoteShapeAdd = useCallback(
