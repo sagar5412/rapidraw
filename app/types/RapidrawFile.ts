@@ -17,6 +17,13 @@ export interface RapidrawFile {
   shapes: Shape[];
 }
 
+// File state for tracking current file
+export interface FileState {
+  handle: FileSystemFileHandle | null;
+  name: string;
+  hasUnsavedChanges: boolean;
+}
+
 // Current file format version
 export const RAPIDRAW_VERSION = "1.0.0";
 
@@ -32,12 +39,13 @@ export const RAPIDRAW_MIME_TYPE = "application/json";
 export function createRapidrawFile(
   shapes: Shape[],
   background: string,
-  theme: "system" | "light" | "dark"
+  theme: "system" | "light" | "dark",
+  existingCreatedAt?: string
 ): RapidrawFile {
   const now = new Date().toISOString();
   return {
     version: RAPIDRAW_VERSION,
-    createdAt: now,
+    createdAt: existingCreatedAt || now,
     modifiedAt: now,
     canvas: {
       background,
@@ -84,7 +92,122 @@ export function parseRapidrawFile(content: string): RapidrawFile | null {
 }
 
 /**
- * Download a Rapidraw file to the user's computer
+ * Check if File System Access API is supported
+ */
+export function isFileSystemAccessSupported(): boolean {
+  return "showSaveFilePicker" in window && "showOpenFilePicker" in window;
+}
+
+/**
+ * Save to an existing file handle (for Ctrl+S "save" behavior)
+ */
+export async function saveToFileHandle(
+  handle: FileSystemFileHandle,
+  shapes: Shape[],
+  background: string,
+  theme: "system" | "light" | "dark"
+): Promise<boolean> {
+  try {
+    const file = createRapidrawFile(shapes, background, theme);
+    const content = serializeRapidrawFile(file);
+
+    const writable = await handle.createWritable();
+    await writable.write(content);
+    await writable.close();
+    return true;
+  } catch (error) {
+    console.error("Failed to save to file:", error);
+    return false;
+  }
+}
+
+/**
+ * Save As - show file picker and save (for new files or "save as")
+ */
+export async function saveAsRapidrawFile(
+  shapes: Shape[],
+  background: string,
+  theme: "system" | "light" | "dark",
+  suggestedName: string = "untitled"
+): Promise<{ handle: FileSystemFileHandle; name: string } | null> {
+  if (!isFileSystemAccessSupported()) {
+    // Fallback to download
+    downloadRapidrawFile(shapes, background, theme, suggestedName);
+    return null;
+  }
+
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: `${suggestedName}${RAPIDRAW_EXTENSION}`,
+      types: [
+        {
+          description: "Rapidraw Files",
+          accept: { "application/json": [RAPIDRAW_EXTENSION as `.${string}`] },
+        },
+      ],
+    });
+
+    const success = await saveToFileHandle(handle, shapes, background, theme);
+    if (success) {
+      return { handle, name: handle.name };
+    }
+    return null;
+  } catch (error) {
+    if ((error as Error).name !== "AbortError") {
+      console.error("Failed to save file:", error);
+    }
+    return null;
+  }
+}
+
+/**
+ * Open file with File System Access API
+ */
+export async function openRapidrawFileWithHandle(): Promise<{
+  file: RapidrawFile;
+  handle: FileSystemFileHandle;
+  name: string;
+} | null> {
+  if (!isFileSystemAccessSupported()) {
+    // Fallback to old method
+    const file = await openRapidrawFile();
+    return file
+      ? {
+          file,
+          handle: null as unknown as FileSystemFileHandle,
+          name: "Untitled",
+        }
+      : null;
+  }
+
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [
+        {
+          description: "Rapidraw Files",
+          accept: { "application/json": [RAPIDRAW_EXTENSION as `.${string}`] },
+        },
+      ],
+    });
+
+    const file = await handle.getFile();
+    const content = await file.text();
+    const rapidrawFile = parseRapidrawFile(content);
+
+    if (rapidrawFile) {
+      return { file: rapidrawFile, handle, name: handle.name };
+    }
+    return null;
+  } catch (error) {
+    if ((error as Error).name !== "AbortError") {
+      console.error("Failed to open file:", error);
+    }
+    return null;
+  }
+}
+
+/**
+ * Download a Rapidraw file to the user's computer (fallback method)
  */
 export function downloadRapidrawFile(
   shapes: Shape[],
@@ -109,7 +232,7 @@ export function downloadRapidrawFile(
 }
 
 /**
- * Open a file picker and load a Rapidraw file
+ * Open a file picker and load a Rapidraw file (fallback method)
  */
 export function openRapidrawFile(): Promise<RapidrawFile | null> {
   return new Promise((resolve) => {

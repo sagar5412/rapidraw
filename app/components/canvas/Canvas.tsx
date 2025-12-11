@@ -20,6 +20,7 @@ import { ShapeSettingsSidebar } from "@/app/components/sidebar/ShapeSettingsSide
 import { useCollaboration } from "@/app/context/CollaborationContext";
 import { CollaborationPanel } from "@/app/components/ui/CollaborationPanel";
 import { UserCursors } from "@/app/components/canvas/UserCursors";
+import { useFileContext } from "@/app/context/FileContext";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,6 +71,12 @@ export function Canvas() {
     setOnRemoteShapesSync,
     setOnRoomState,
   } = useCollaboration();
+
+  // File management
+  const { fileState, saveFile, saveFileAs } = useFileContext();
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
+    "idle"
+  );
 
   // Track if update is from remote to prevent re-emission
   const isRemoteUpdateRef = useRef(false);
@@ -338,6 +345,30 @@ export function Canvas() {
           emitShapeAdd(pastedShape);
         }
       }
+
+      // Save (Ctrl+S)
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        setSaveStatus("saving");
+        saveFile(shapes, canvasBackground, theme).then((success) => {
+          setSaveStatus(success ? "saved" : "idle");
+          if (success) {
+            setTimeout(() => setSaveStatus("idle"), 2000);
+          }
+        });
+      }
+
+      // Save As (Ctrl+Shift+S)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
+        e.preventDefault();
+        setSaveStatus("saving");
+        saveFileAs(shapes, canvasBackground, theme).then((success) => {
+          setSaveStatus(success ? "saved" : "idle");
+          if (success) {
+            setTimeout(() => setSaveStatus("idle"), 2000);
+          }
+        });
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -353,6 +384,10 @@ export function Canvas() {
     shapes,
     clipboard,
     emitShapeAdd,
+    saveFile,
+    saveFileAs,
+    canvasBackground,
+    theme,
   ]);
 
   useEffect(() => {
@@ -809,6 +844,63 @@ export function Canvas() {
           canUndo={canUndo}
           canRedo={canRedo}
         />
+      </div>
+
+      {/* Bottom-right: File Status Bar */}
+      <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-[#1E1E24] rounded-lg p-1.5 shadow-xl border border-gray-700/50 z-50">
+        {/* File name */}
+        <span
+          className="text-gray-400 text-[10px] px-1 max-w-[100px] truncate"
+          title={fileState.name}
+        >
+          {fileState.name}
+          {fileState.hasUnsavedChanges && (
+            <span className="text-yellow-400 ml-0.5">•</span>
+          )}
+        </span>
+
+        {/* Save status indicator */}
+        {saveStatus === "saving" && (
+          <span className="text-gray-400 text-[10px] animate-pulse">
+            Saving...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="text-green-400 text-[10px]">✓ Saved</span>
+        )}
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-gray-600"></div>
+
+        {/* Save button */}
+        <button
+          onClick={() => {
+            setSaveStatus("saving");
+            saveFile(shapes, canvasBackground, theme).then((success) => {
+              setSaveStatus(success ? "saved" : "idle");
+              if (success) setTimeout(() => setSaveStatus("idle"), 2000);
+            });
+          }}
+          className="px-2 py-1 text-[10px] text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+          title="Save (Ctrl+S)"
+        >
+          Save
+        </button>
+
+        {/* Save As button */}
+        <button
+          onClick={() => {
+            setSaveStatus("saving");
+            saveFileAs(shapes, canvasBackground, theme).then((success) => {
+              setSaveStatus(success ? "saved" : "idle");
+              if (success) setTimeout(() => setSaveStatus("idle"), 2000);
+            });
+          }}
+          className="px-2 py-1 text-[10px] text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+          title="Save As (Ctrl+Shift+S)"
+        >
+          Save As
+        </button>
       </div>
     </div>
   );
