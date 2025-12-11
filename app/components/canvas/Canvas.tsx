@@ -192,50 +192,114 @@ export function Canvas() {
     return { minX, minY, maxX, maxY };
   }, [shapes]);
 
-  // Center view on content
+  // Get the first shape's center position
+  const getFirstShapeCenter = useCallback(() => {
+    if (shapes.length === 0) return null;
+
+    const firstShape = shapes[0];
+    let centerX = 0,
+      centerY = 0;
+
+    if (
+      firstShape.type === "rectangle" ||
+      firstShape.type === "diamond" ||
+      firstShape.type === "textbox"
+    ) {
+      centerX = firstShape.x + firstShape.width / 2;
+      centerY = firstShape.y + firstShape.height / 2;
+    } else if (firstShape.type === "circle") {
+      centerX = firstShape.x + firstShape.radius;
+      centerY = firstShape.y + firstShape.radius;
+    } else if (firstShape.type === "line" || firstShape.type === "arrow") {
+      centerX = (firstShape.x1 + firstShape.x2) / 2;
+      centerY = (firstShape.y1 + firstShape.y2) / 2;
+    } else if (firstShape.type === "freehand" && firstShape.points.length > 0) {
+      const xs = firstShape.points.map((p) => p.x);
+      const ys = firstShape.points.map((p) => p.y);
+      centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+    }
+
+    return { x: centerX, y: centerY };
+  }, [shapes]);
+
+  // Center view on first shape (content)
   const centerOnContent = useCallback(() => {
-    const bounds = getContentBounds();
-    if (!bounds) return;
+    const firstShapeCenter = getFirstShapeCenter();
+    if (!firstShapeCenter) return;
 
-    const centerX = (bounds.minX + bounds.maxX) / 2;
-    const centerY = (bounds.minY + bounds.maxY) / 2;
-
-    // Calculate offset to center the content on screen
+    // Calculate offset to center the first shape on screen
     const viewportCenterX = window.innerWidth / 2;
     const viewportCenterY = window.innerHeight / 2;
 
     setOffset({
-      x: viewportCenterX - centerX * scale,
-      y: viewportCenterY - centerY * scale,
+      x: viewportCenterX - firstShapeCenter.x * scale,
+      y: viewportCenterY - firstShapeCenter.y * scale,
     });
-  }, [getContentBounds, scale]);
+  }, [getFirstShapeCenter, scale]);
 
-  // Check if content is visible in viewport
+  // Check if ANY shape is visible in viewport
   const isContentVisible = useMemo(() => {
-    const bounds = getContentBounds();
-    if (!bounds || shapes.length === 0) return true;
+    if (shapes.length === 0) return true;
 
-    // Convert bounds to screen coordinates
-    const screenMinX = bounds.minX * scale + offset.x;
-    const screenMinY = bounds.minY * scale + offset.y;
-    const screenMaxX = bounds.maxX * scale + offset.x;
-    const screenMaxY = bounds.maxY * scale + offset.y;
-
-    // Check if any part of content is visible
     const viewWidth = typeof window !== "undefined" ? window.innerWidth : 1920;
     const viewHeight =
       typeof window !== "undefined" ? window.innerHeight : 1080;
 
-    // Content is visible if bounding box overlaps with viewport
-    const isVisible = !(
-      screenMaxX < -100 ||
-      screenMinX > viewWidth + 100 ||
-      screenMaxY < -100 ||
-      screenMinY > viewHeight + 100
-    );
+    // Check each shape individually - if ANY is visible, return true
+    for (const shape of shapes) {
+      let minX = 0,
+        minY = 0,
+        maxX = 0,
+        maxY = 0;
 
-    return isVisible;
-  }, [getContentBounds, shapes.length, scale, offset]);
+      if (
+        shape.type === "rectangle" ||
+        shape.type === "diamond" ||
+        shape.type === "textbox"
+      ) {
+        minX = shape.x;
+        minY = shape.y;
+        maxX = shape.x + shape.width;
+        maxY = shape.y + shape.height;
+      } else if (shape.type === "circle") {
+        minX = shape.x;
+        minY = shape.y;
+        maxX = shape.x + shape.radius * 2;
+        maxY = shape.y + shape.radius * 2;
+      } else if (shape.type === "line" || shape.type === "arrow") {
+        minX = Math.min(shape.x1, shape.x2);
+        minY = Math.min(shape.y1, shape.y2);
+        maxX = Math.max(shape.x1, shape.x2);
+        maxY = Math.max(shape.y1, shape.y2);
+      } else if (shape.type === "freehand" && shape.points.length > 0) {
+        const xs = shape.points.map((p) => p.x);
+        const ys = shape.points.map((p) => p.y);
+        minX = Math.min(...xs);
+        minY = Math.min(...ys);
+        maxX = Math.max(...xs);
+        maxY = Math.max(...ys);
+      }
+
+      // Convert to screen coordinates
+      const screenMinX = minX * scale + offset.x;
+      const screenMinY = minY * scale + offset.y;
+      const screenMaxX = maxX * scale + offset.x;
+      const screenMaxY = maxY * scale + offset.y;
+
+      // Check if this shape is visible
+      const isShapeVisible = !(
+        screenMaxX < -50 ||
+        screenMinX > viewWidth + 50 ||
+        screenMaxY < -50 ||
+        screenMinY > viewHeight + 50
+      );
+
+      if (isShapeVisible) return true; // At least one shape is visible
+    }
+
+    return false; // No shapes visible
+  }, [shapes, scale, offset]);
 
   const { isDragging, handleDragStart, handleDragMove, handleDragEnd } =
     useDragShape(
