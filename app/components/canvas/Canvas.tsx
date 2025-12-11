@@ -78,6 +78,54 @@ export function Canvas() {
     "idle"
   );
 
+  // LocalStorage key for auto-save
+  const STORAGE_KEY = "rapidraw_canvas";
+
+  // Load from localStorage on initial mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.shapes && Array.isArray(data.shapes)) {
+          setShapes(data.shapes);
+        }
+        if (data.background) {
+          setCanvasBackground(data.background);
+        }
+        if (data.theme) {
+          setTheme(data.theme);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load from localStorage:", error);
+    }
+  }, []); // Only run once on mount
+
+  // Save to localStorage whenever shapes, background, or theme changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!canvasBackground) return; // Don't save before background is set
+
+    const saveTimeout = setTimeout(() => {
+      try {
+        const data = {
+          shapes,
+          background: canvasBackground,
+          theme,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (error) {
+        console.error("Failed to save to localStorage:", error);
+      }
+    }, 500); // Debounce saves
+
+    return () => clearTimeout(saveTimeout);
+  }, [shapes, canvasBackground, theme]);
+
   // Track if update is from remote to prevent re-emission
   const isRemoteUpdateRef = useRef(false);
 
