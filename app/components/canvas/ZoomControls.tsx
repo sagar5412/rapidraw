@@ -15,17 +15,17 @@ export function ZoomControls({
     <>
       <button
         onClick={zoomOut}
-        className="w-10 h-10 flex items-center justify-center text-white text-xl font-bold hover:bg-[#403E6A] rounded-lg transition-colors"
+        className="w-7 h-7 flex items-center justify-center text-white text-base font-bold hover:bg-[#403E6A] rounded-md transition-colors"
         title="Zoom Out"
       >
         −
       </button>
-      <div className="w-16 text-center text-white text-sm font-medium">
+      <div className="w-10 text-center text-white text-xs font-medium">
         {zoomPercentage}%
       </div>
       <button
         onClick={zoomIn}
-        className="w-10 h-10 flex items-center justify-center text-white text-xl font-bold hover:bg-[#403E6A] rounded-lg transition-colors"
+        className="w-7 h-7 flex items-center justify-center text-white text-base font-bold hover:bg-[#403E6A] rounded-md transition-colors"
         title="Zoom In"
       >
         +

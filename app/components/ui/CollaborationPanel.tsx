@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useCollaboration } from "@/app/context/CollaborationContext";
 
-// Icons
+// Icons - smaller 14px
 const UsersIcon = () => (
   <svg
-    width="18"
-    height="18"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -22,8 +22,8 @@ const UsersIcon = () => (
 
 const CopyIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -36,8 +36,8 @@ const CopyIcon = () => (
 
 const CheckIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -49,8 +49,8 @@ const CheckIcon = () => (
 
 const XIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -96,24 +96,24 @@ export function CollaborationPanel() {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-3 right-3 z-50">
       {/* Main button / collapsed state */}
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-col items-end gap-1.5">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-xl border transition-all duration-200 ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-lg border transition-all duration-200 ${
             isCollaborating
               ? "bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700"
               : "bg-[#1E1E24] border-gray-700/50 text-gray-300 hover:text-white hover:bg-[#2a2a32]"
           }`}
         >
           <UsersIcon />
-          <span className="text-sm font-medium">
+          <span className="text-xs font-medium">
             {isCollaborating ? `Live (${users.length})` : "Collaborate"}
           </span>
           {/* Connection indicator */}
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`w-1.5 h-1.5 rounded-full ${
               isConnected ? "bg-green-400" : "bg-red-400"
             }`}
           />
@@ -121,18 +121,18 @@ export function CollaborationPanel() {
 
         {/* Expanded panel */}
         {isExpanded && (
-          <div className="bg-[#1E1E24] border border-gray-700/50 rounded-xl shadow-2xl p-4 min-w-[280px]">
+          <div className="bg-[#1E1E24] border border-gray-700/50 rounded-lg shadow-xl p-3 min-w-[220px]">
             {!isCollaborating ? (
               // Not collaborating - show start/join options
-              <div className="space-y-3">
-                <p className="text-gray-400 text-sm">
+              <div className="space-y-2">
+                <p className="text-gray-400 text-xs">
                   Share your canvas in real-time
                 </p>
 
                 <button
                   onClick={startSession}
                   disabled={!isConnected}
-                  className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                  className="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-xs font-medium transition-colors"
                 >
                   Start Session
                 </button>
@@ -141,13 +141,13 @@ export function CollaborationPanel() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-600"></div>
                   </div>
-                  <div className="relative flex justify-center text-sm">
+                  <div className="relative flex justify-center text-xs">
                     <span className="px-2 bg-[#1E1E24] text-gray-500">or</span>
                   </div>
                 </div>
 
                 {showJoinInput ? (
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <input
                       type="text"
                       value={joinRoomId}
@@ -155,14 +155,14 @@ export function CollaborationPanel() {
                         setJoinRoomId(e.target.value.toUpperCase())
                       }
                       onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-                      placeholder="Enter room code"
-                      className="flex-1 px-3 py-2 bg-[#2a2a32] border border-gray-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-indigo-500"
+                      placeholder="Room code"
+                      className="flex-1 px-2 py-1 bg-[#2a2a32] border border-gray-600 rounded-md text-white placeholder-gray-500 text-xs focus:outline-none focus:border-indigo-500"
                       autoFocus
                     />
                     <button
                       onClick={handleJoin}
                       disabled={!joinRoomId.trim()}
-                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                      className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white rounded-md transition-colors"
                     >
                       <CheckIcon />
                     </button>
@@ -171,7 +171,7 @@ export function CollaborationPanel() {
                         setShowJoinInput(false);
                         setJoinRoomId("");
                       }}
-                      className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+                      className="px-2 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors"
                     >
                       <XIcon />
                     </button>
@@ -180,56 +180,56 @@ export function CollaborationPanel() {
                   <button
                     onClick={() => setShowJoinInput(true)}
                     disabled={!isConnected}
-                    className="w-full py-2.5 px-4 bg-[#2a2a32] hover:bg-[#3a3a42] disabled:cursor-not-allowed text-gray-300 rounded-lg font-medium transition-colors border border-gray-600"
+                    className="w-full py-1.5 px-3 bg-[#2a2a32] hover:bg-[#3a3a42] disabled:cursor-not-allowed text-gray-300 rounded-md text-xs font-medium transition-colors border border-gray-600"
                   >
                     Join Session
                   </button>
                 )}
 
                 {!isConnected && (
-                  <p className="text-red-400 text-xs text-center">
+                  <p className="text-red-400 text-[10px] text-center">
                     Connecting to server...
                   </p>
                 )}
               </div>
             ) : (
               // Collaborating - show room info and users
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 {/* Room ID */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-500 text-xs uppercase tracking-wider">
+                    <p className="text-gray-500 text-[10px] uppercase tracking-wider">
                       Room Code
                     </p>
-                    <p className="text-white font-mono text-lg font-bold">
+                    <p className="text-white font-mono text-sm font-bold">
                       {roomId}
                     </p>
                   </div>
                   <button
                     onClick={handleCopyLink}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a2a32] hover:bg-[#3a3a42] text-gray-300 rounded-lg text-sm transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 bg-[#2a2a32] hover:bg-[#3a3a42] text-gray-300 rounded-md text-[10px] transition-colors"
                   >
                     {copied ? <CheckIcon /> : <CopyIcon />}
-                    {copied ? "Copied!" : "Copy Link"}
+                    {copied ? "Copied!" : "Copy"}
                   </button>
                 </div>
 
                 {/* Users list */}
                 <div>
-                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">
+                  <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">
                     Participants ({users.length})
                   </p>
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  <div className="space-y-1 max-h-24 overflow-y-auto">
                     {users.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[#2a2a32]"
+                        className="flex items-center gap-1.5 px-1.5 py-1 rounded-md bg-[#2a2a32]"
                       >
                         <span
-                          className="w-3 h-3 rounded-full"
+                          className="w-2 h-2 rounded-full"
                           style={{ backgroundColor: user.color }}
                         />
-                        <span className="text-gray-200 text-sm">
+                        <span className="text-gray-200 text-xs">
                           {user.name}
                           {user.id === localUser?.id && (
                             <span className="text-gray-500 ml-1">(you)</span>
@@ -243,7 +243,7 @@ export function CollaborationPanel() {
                 {/* Leave button */}
                 <button
                   onClick={leaveSession}
-                  className="w-full py-2 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg font-medium transition-colors border border-red-600/30"
+                  className="w-full py-1.5 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-md text-xs font-medium transition-colors border border-red-600/30"
                 >
                   Leave Session
                 </button>

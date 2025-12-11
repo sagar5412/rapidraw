@@ -786,13 +786,13 @@ export function Canvas() {
       )}
 
       {/* Bottom-left controls: Zoom + Undo/Redo */}
-      <div className="fixed bottom-6 left-6 flex items-center gap-2 bg-[#1E1E24] rounded-xl p-2 shadow-2xl border border-gray-700/50 z-50">
+      <div className="fixed bottom-4 left-4 flex items-center gap-1 bg-[#1E1E24] rounded-lg p-1.5 shadow-xl border border-gray-700/50 z-50">
         <ZoomControls
           zoomIn={zoomIn}
           zoomOut={zoomOut}
           zoomPercentage={zoomPercentage}
         />
-        <div className="w-px h-6 bg-gray-600 mx-1"></div>
+        <div className="w-px h-4 bg-gray-600 mx-0.5"></div>
         <HistoryControls
           undo={handleUndo}
           redo={handleRedo}

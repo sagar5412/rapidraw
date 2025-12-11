@@ -6,11 +6,11 @@ interface ToolbarProps {
   setSelectedTool: (tool: selectedShapes) => void;
 }
 
-// SVG Icons as components
+// SVG Icons as components - smaller 16px icons
 const SelectIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -23,8 +23,8 @@ const SelectIcon = () => (
 
 const RectangleIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -36,8 +36,8 @@ const RectangleIcon = () => (
 
 const CircleIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -49,8 +49,8 @@ const CircleIcon = () => (
 
 const LineIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -62,8 +62,8 @@ const LineIcon = () => (
 
 const ArrowIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -76,8 +76,8 @@ const ArrowIcon = () => (
 
 const DrawIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -91,8 +91,8 @@ const DrawIcon = () => (
 
 const DiamondIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -104,8 +104,8 @@ const DiamondIcon = () => (
 
 const TextIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -119,8 +119,8 @@ const TextIcon = () => (
 
 const EraserIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -142,7 +142,7 @@ const ToolButton = ({ icon, label, isSelected, onClick }: ToolButtonProps) => (
   <button
     onClick={onClick}
     title={label}
-    className={`p-3 rounded-lg transition-all duration-200 hover:bg-[#504E7A] ${
+    className={`p-2 rounded-md transition-all duration-200 hover:bg-[#504E7A] ${
       isSelected
         ? "bg-[#6366F1] text-white shadow-lg shadow-indigo-500/30"
         : "text-gray-400 hover:text-white"
@@ -176,7 +176,11 @@ export function Toolbar({ selectedTool, setSelectedTool }: ToolbarProps) {
     },
     { id: "line" as selectedShapes, icon: <LineIcon />, label: "Line (L)" },
     { id: "arrow" as selectedShapes, icon: <ArrowIcon />, label: "Arrow (A)" },
-    { id: "freehand" as selectedShapes, icon: <DrawIcon />, label: "Draw (P)" },
+    {
+      id: "freehand" as selectedShapes,
+      icon: <DrawIcon />,
+      label: "Freehand (P)",
+    },
     { id: "text" as selectedShapes, icon: <TextIcon />, label: "Text (T)" },
     {
       id: "eraser" as selectedShapes,
@@ -186,21 +190,16 @@ export function Toolbar({ selectedTool, setSelectedTool }: ToolbarProps) {
   ];
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-1 bg-[#1E1E24] px-3 py-2 rounded-xl shadow-2xl border border-gray-700/50 backdrop-blur-sm">
-        {tools.map((tool, index) => (
-          <div key={tool.id} className="flex items-center">
-            <ToolButton
-              icon={tool.icon}
-              label={tool.label}
-              isSelected={selectedTool === tool.id}
-              onClick={() => setSelectedTool(tool.id)}
-            />
-            {/* Add separator between shape tools and other tools */}
-            {(index === 0 || index === 5 || index === 7) && (
-              <div className="w-px h-6 bg-gray-600/50 mx-1" />
-            )}
-          </div>
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="flex items-center gap-1 bg-[#1E1E24] rounded-lg p-1.5 shadow-xl border border-gray-700/50">
+        {tools.map((tool) => (
+          <ToolButton
+            key={tool.id}
+            icon={tool.icon}
+            label={tool.label}
+            isSelected={selectedTool === tool.id}
+            onClick={() => setSelectedTool(tool.id)}
+          />
         ))}
       </div>
     </div>
