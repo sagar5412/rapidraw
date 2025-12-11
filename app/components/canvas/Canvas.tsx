@@ -150,6 +150,93 @@ export function Canvas() {
   const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
 
+  // Get bounding box of all shapes
+  const getContentBounds = useCallback(() => {
+    if (shapes.length === 0) return null;
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+
+    for (const shape of shapes) {
+      if (
+        shape.type === "rectangle" ||
+        shape.type === "diamond" ||
+        shape.type === "textbox"
+      ) {
+        minX = Math.min(minX, shape.x);
+        minY = Math.min(minY, shape.y);
+        maxX = Math.max(maxX, shape.x + shape.width);
+        maxY = Math.max(maxY, shape.y + shape.height);
+      } else if (shape.type === "circle") {
+        minX = Math.min(minX, shape.x);
+        minY = Math.min(minY, shape.y);
+        maxX = Math.max(maxX, shape.x + shape.radius * 2);
+        maxY = Math.max(maxY, shape.y + shape.radius * 2);
+      } else if (shape.type === "line" || shape.type === "arrow") {
+        minX = Math.min(minX, shape.x1, shape.x2);
+        minY = Math.min(minY, shape.y1, shape.y2);
+        maxX = Math.max(maxX, shape.x1, shape.x2);
+        maxY = Math.max(maxY, shape.y1, shape.y2);
+      } else if (shape.type === "freehand" && shape.points.length > 0) {
+        for (const p of shape.points) {
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x);
+          maxY = Math.max(maxY, p.y);
+        }
+      }
+    }
+
+    return { minX, minY, maxX, maxY };
+  }, [shapes]);
+
+  // Center view on content
+  const centerOnContent = useCallback(() => {
+    const bounds = getContentBounds();
+    if (!bounds) return;
+
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+
+    // Calculate offset to center the content on screen
+    const viewportCenterX = window.innerWidth / 2;
+    const viewportCenterY = window.innerHeight / 2;
+
+    setOffset({
+      x: viewportCenterX - centerX * scale,
+      y: viewportCenterY - centerY * scale,
+    });
+  }, [getContentBounds, scale]);
+
+  // Check if content is visible in viewport
+  const isContentVisible = useMemo(() => {
+    const bounds = getContentBounds();
+    if (!bounds || shapes.length === 0) return true;
+
+    // Convert bounds to screen coordinates
+    const screenMinX = bounds.minX * scale + offset.x;
+    const screenMinY = bounds.minY * scale + offset.y;
+    const screenMaxX = bounds.maxX * scale + offset.x;
+    const screenMaxY = bounds.maxY * scale + offset.y;
+
+    // Check if any part of content is visible
+    const viewWidth = typeof window !== "undefined" ? window.innerWidth : 1920;
+    const viewHeight =
+      typeof window !== "undefined" ? window.innerHeight : 1080;
+
+    // Content is visible if bounding box overlaps with viewport
+    const isVisible = !(
+      screenMaxX < -100 ||
+      screenMinX > viewWidth + 100 ||
+      screenMaxY < -100 ||
+      screenMinY > viewHeight + 100
+    );
+
+    return isVisible;
+  }, [getContentBounds, shapes.length, scale, offset]);
+
   const { isDragging, handleDragStart, handleDragMove, handleDragEnd } =
     useDragShape(
       canvasRef,
@@ -950,6 +1037,28 @@ export function Canvas() {
           Save As
         </button>
       </div>
+
+      {/* Back to Content Button - shows when content is off-screen */}
+      {!isContentVisible && shapes.length > 0 && (
+        <button
+          onClick={centerOnContent}
+          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xl border border-indigo-500 z-50 transition-all animate-bounce"
+          title="Center view on your drawings"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+          </svg>
+          <span className="text-xs font-medium">Back to Content</span>
+        </button>
+      )}
     </div>
   );
 }
