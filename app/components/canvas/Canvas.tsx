@@ -46,6 +46,9 @@ export function Canvas() {
     y: number;
   } | null>(null);
 
+  // Clipboard for copy/paste
+  const [clipboard, setClipboard] = useState<Shape | null>(null);
+
   // Screen settings
   const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
   const [canvasBackground, setCanvasBackground] = useState("");
@@ -276,6 +279,62 @@ export function Canvas() {
         e.preventDefault();
         handleRedo();
       }
+
+      // Copy (Ctrl+C)
+      if ((e.ctrlKey || e.metaKey) && e.key === "c" && selectedShapeId) {
+        e.preventDefault();
+        const shapeToCopy = shapes.find((s) => s.id === selectedShapeId);
+        if (shapeToCopy) {
+          setClipboard({ ...shapeToCopy });
+        }
+      }
+
+      // Paste (Ctrl+V)
+      if ((e.ctrlKey || e.metaKey) && e.key === "v" && clipboard) {
+        e.preventDefault();
+        const pasteOffset = 20; // Offset pasted shape by 20px
+        const newId = Date.now().toString();
+
+        let pastedShape: Shape;
+
+        if (clipboard.type === "line" || clipboard.type === "arrow") {
+          // For line/arrow shapes, offset all points
+          pastedShape = {
+            ...clipboard,
+            id: newId,
+            x1: clipboard.x1 + pasteOffset,
+            y1: clipboard.y1 + pasteOffset,
+            x2: clipboard.x2 + pasteOffset,
+            y2: clipboard.y2 + pasteOffset,
+          } as Shape;
+        } else if (clipboard.type === "freehand") {
+          // For freehand, offset all points
+          pastedShape = {
+            ...clipboard,
+            id: newId,
+            points: clipboard.points.map((p) => ({
+              x: p.x + pasteOffset,
+              y: p.y + pasteOffset,
+            })),
+          } as Shape;
+        } else {
+          // For all other shapes with x, y coords
+          pastedShape = {
+            ...clipboard,
+            id: newId,
+            x: (clipboard as any).x + pasteOffset,
+            y: (clipboard as any).y + pasteOffset,
+          } as Shape;
+        }
+
+        setShapes((prev) => [...prev, pastedShape]);
+        setSelectedShapeId(newId);
+
+        // Emit for collaboration
+        if (isCollaborating) {
+          emitShapeAdd(pastedShape);
+        }
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -288,6 +347,9 @@ export function Canvas() {
     editingTextId,
     emitShapeDelete,
     isCollaborating,
+    shapes,
+    clipboard,
+    emitShapeAdd,
   ]);
 
   useEffect(() => {
