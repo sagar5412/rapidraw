@@ -48,37 +48,41 @@ export function useResizeShape(
     (shape: Shape): { handle: ResizeHandle; x: number; y: number }[] => {
       const handles: { handle: ResizeHandle; x: number; y: number }[] = [];
       const hs = HANDLE_SIZE / 2;
+      const SELECTION_PADDING = 6; // Gap between shape and selection outline
 
       if (shape.type === "rectangle" || shape.type === "diamond") {
         const { x, y, width, height } = shape;
+        const p = SELECTION_PADDING;
         handles.push(
-          { handle: "nw", x: x, y: y },
-          { handle: "n", x: x + width / 2, y: y },
-          { handle: "ne", x: x + width, y: y },
-          { handle: "w", x: x, y: y + height / 2 },
-          { handle: "e", x: x + width, y: y + height / 2 },
-          { handle: "sw", x: x, y: y + height },
-          { handle: "s", x: x + width / 2, y: y + height },
-          { handle: "se", x: x + width, y: y + height }
+          { handle: "nw", x: x - p, y: y - p },
+          { handle: "n", x: x + width / 2, y: y - p },
+          { handle: "ne", x: x + width + p, y: y - p },
+          { handle: "w", x: x - p, y: y + height / 2 },
+          { handle: "e", x: x + width + p, y: y + height / 2 },
+          { handle: "sw", x: x - p, y: y + height + p },
+          { handle: "s", x: x + width / 2, y: y + height + p },
+          { handle: "se", x: x + width + p, y: y + height + p }
         );
       } else if (shape.type === "textbox") {
         // Text gets 4 corner handles like Excalidraw
         const { x, y, width, height } = shape;
+        const p = SELECTION_PADDING;
         handles.push(
-          { handle: "nw", x: x, y: y },
-          { handle: "ne", x: x + width, y: y },
-          { handle: "sw", x: x, y: y + height },
-          { handle: "se", x: x + width, y: y + height }
+          { handle: "nw", x: x - p, y: y - p },
+          { handle: "ne", x: x + width + p, y: y - p },
+          { handle: "sw", x: x - p, y: y + height + p },
+          { handle: "se", x: x + width + p, y: y + height + p }
         );
       } else if (shape.type === "circle") {
         const { x, y, radius } = shape;
         const cx = x + radius;
         const cy = y + radius;
+        const p = SELECTION_PADDING;
         handles.push(
-          { handle: "nw", x: x, y: y },
-          { handle: "ne", x: x + radius * 2, y: y },
-          { handle: "sw", x: x, y: y + radius * 2 },
-          { handle: "se", x: x + radius * 2, y: y + radius * 2 }
+          { handle: "nw", x: x - p, y: y - p },
+          { handle: "ne", x: x + radius * 2 + p, y: y - p },
+          { handle: "sw", x: x - p, y: y + radius * 2 + p },
+          { handle: "se", x: x + radius * 2 + p, y: y + radius * 2 + p }
         );
       } else if (shape.type === "line" || shape.type === "arrow") {
         handles.push(
@@ -95,12 +99,13 @@ export function useResizeShape(
         const maxY = Math.max(...ys);
         const width = maxX - minX;
         const height = maxY - minY;
+        const p = SELECTION_PADDING;
 
         handles.push(
-          { handle: "nw", x: minX, y: minY },
-          { handle: "ne", x: maxX, y: minY },
-          { handle: "sw", x: minX, y: maxY },
-          { handle: "se", x: maxX, y: maxY }
+          { handle: "nw", x: minX - p, y: minY - p },
+          { handle: "ne", x: maxX + p, y: minY - p },
+          { handle: "sw", x: minX - p, y: maxY + p },
+          { handle: "se", x: maxX + p, y: maxY + p }
         );
       }
 
