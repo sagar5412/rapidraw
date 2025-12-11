@@ -413,20 +413,43 @@ export function Canvas() {
   };
 
   const onDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (selectedTool === "select") {
-      const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
-      const clickedTextbox = shapes.find(
-        (s) =>
-          s.type === "textbox" &&
-          worldPos.x >= s.x &&
-          worldPos.x <= s.x + s.width &&
-          worldPos.y >= s.y &&
-          worldPos.y <= s.y + s.height
-      );
-      if (clickedTextbox && clickedTextbox.type === "textbox") {
-        setSelectedShapeId(null); // Hide selection box while editing
-        setEditingTextId(clickedTextbox.id);
+    const worldPos = screenToWorld(e.clientX, e.clientY, offset, scale);
+
+    // Check if double-clicking on an existing textbox
+    const clickedTextbox = shapes.find(
+      (s) =>
+        s.type === "textbox" &&
+        worldPos.x >= s.x &&
+        worldPos.x <= s.x + s.width &&
+        worldPos.y >= s.y &&
+        worldPos.y <= s.y + s.height
+    );
+
+    if (clickedTextbox && clickedTextbox.type === "textbox") {
+      // Edit existing textbox
+      setSelectedShapeId(null);
+      setEditingTextId(clickedTextbox.id);
+    } else {
+      // Create new textbox at double-click position
+      const newTextbox: textbox = {
+        id: Date.now().toString(),
+        type: "textbox",
+        x: worldPos.x,
+        y: worldPos.y,
+        width: 150,
+        height: 30,
+        fontSize: 16,
+        htmlContent: "",
+        strokeColor: defaultColor,
+      };
+      setShapes((prev) => [...prev, newTextbox]);
+      // Emit for collaboration
+      if (isCollaborating) {
+        emitShapeAdd(newTextbox);
       }
+      setEditingTextId(newTextbox.id);
+      // Switch to select tool for editing
+      setSelectedTool("select");
     }
   };
 
