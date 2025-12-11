@@ -190,18 +190,16 @@ export function Toolbar({ selectedTool, setSelectedTool }: ToolbarProps) {
   ];
 
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="flex items-center gap-1 bg-[#1E1E24] rounded-lg p-1.5 shadow-xl border border-gray-700/50">
-        {tools.map((tool) => (
-          <ToolButton
-            key={tool.id}
-            icon={tool.icon}
-            label={tool.label}
-            isSelected={selectedTool === tool.id}
-            onClick={() => setSelectedTool(tool.id)}
-          />
-        ))}
-      </div>
+    <div className="flex items-center gap-1 bg-[#1E1E24] rounded-lg p-1.5 shadow-xl border border-gray-700/50">
+      {tools.map((tool) => (
+        <ToolButton
+          key={tool.id}
+          icon={tool.icon}
+          label={tool.label}
+          isSelected={selectedTool === tool.id}
+          onClick={() => setSelectedTool(tool.id)}
+        />
+      ))}
     </div>
   );
 }

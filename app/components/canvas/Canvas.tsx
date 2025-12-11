@@ -52,9 +52,12 @@ export function Canvas() {
   // Screen settings
   const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
   const [canvasBackground, setCanvasBackground] = useState("");
+  const [screenSettingsOpen, setScreenSettingsOpen] = useState(false);
+  const [collabPanelOpen, setCollabPanelOpen] = useState(false);
 
   // Collaboration
   const {
+    isConnected,
     isCollaborating,
     emitShapeAdd,
     emitShapeUpdate,
@@ -677,23 +680,30 @@ export function Canvas() {
       className="h-screen w-screen"
       style={{ backgroundColor: canvasBackground }}
     >
-      <Toolbar selectedTool={selectedTool} setSelectedTool={setSelectedTool} />
+      {/* Top Bar - Screen Settings (left) | Toolbar (center) | Collaborate (right) */}
+      <div className="fixed top-3 left-0 right-0 z-50 flex items-center justify-between px-3">
+        {/* Left - Screen Settings */}
+        <ScreenSettingsSidebar
+          theme={theme}
+          setTheme={setTheme}
+          canvasBackground={canvasBackground}
+          setCanvasBackground={setCanvasBackground}
+          shapes={shapes}
+          setShapes={setShapes}
+        />
 
-      {/* Collaboration Panel */}
-      <CollaborationPanel />
+        {/* Center - Toolbar */}
+        <Toolbar
+          selectedTool={selectedTool}
+          setSelectedTool={setSelectedTool}
+        />
+
+        {/* Right - Collaboration */}
+        <CollaborationPanel />
+      </div>
 
       {/* Remote User Cursors */}
       {isCollaborating && <UserCursors offset={offset} scale={scale} />}
-
-      {/* Screen Settings Sidebar */}
-      <ScreenSettingsSidebar
-        theme={theme}
-        setTheme={setTheme}
-        canvasBackground={canvasBackground}
-        setCanvasBackground={setCanvasBackground}
-        shapes={shapes}
-        setShapes={setShapes}
-      />
 
       {/* Shape Settings Sidebar - show when shape is selected */}
       <ShapeSettingsSidebar

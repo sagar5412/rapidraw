@@ -6,8 +6,8 @@ import { useCollaboration } from "@/app/context/CollaborationContext";
 // Icons - smaller 14px
 const UsersIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="16"
+    height="16"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -96,36 +96,37 @@ export function CollaborationPanel() {
   };
 
   return (
-    <div className="fixed top-3 right-3 z-50">
-      {/* Main button / collapsed state */}
-      <div className="flex flex-col items-end gap-1.5">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-lg border transition-all duration-200 ${
-            isCollaborating
-              ? "bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700"
-              : "bg-[#1E1E24] border-gray-700/50 text-gray-300 hover:text-white hover:bg-[#2a2a32]"
+    <>
+      {/* Main button */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={`p-2 rounded-md transition-all duration-200 flex items-center gap-1.5 shadow-xl border ${
+          isCollaborating
+            ? "bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700"
+            : "bg-[#1E1E24] border-gray-700/50 text-gray-400 hover:text-white hover:bg-[#2a2a32]"
+        }`}
+        title={isCollaborating ? "Live Session" : "Collaborate"}
+      >
+        <UsersIcon />
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${
+            isConnected ? "bg-green-400" : "bg-red-400"
           }`}
-        >
-          <UsersIcon />
-          <span className="text-xs font-medium">
-            {isCollaborating ? `Live (${users.length})` : "Collaborate"}
-          </span>
-          {/* Connection indicator */}
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              isConnected ? "bg-green-400" : "bg-red-400"
-            }`}
-          />
-        </button>
+        />
+      </button>
 
-        {/* Expanded panel */}
-        {isExpanded && (
-          <div className="bg-[#1E1E24] border border-gray-700/50 rounded-lg shadow-xl p-3 min-w-[220px]">
+      {/* Expanded panel */}
+      {isExpanded && (
+        <>
+          <div
+            className="fixed inset-0 z-35"
+            onClick={() => setIsExpanded(false)}
+          />
+          <div className="fixed right-3 top-14 bg-[#1E1E24] border border-gray-700/50 rounded-lg shadow-xl p-3 min-w-[200px] z-40">
             {!isCollaborating ? (
               // Not collaborating - show start/join options
               <div className="space-y-2">
-                <p className="text-gray-400 text-xs">
+                <p className="text-gray-400 text-[10px]">
                   Share your canvas in real-time
                 </p>
 
@@ -141,13 +142,13 @@ export function CollaborationPanel() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-600"></div>
                   </div>
-                  <div className="relative flex justify-center text-xs">
+                  <div className="relative flex justify-center text-[10px]">
                     <span className="px-2 bg-[#1E1E24] text-gray-500">or</span>
                   </div>
                 </div>
 
                 {showJoinInput ? (
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1">
                     <input
                       type="text"
                       value={joinRoomId}
@@ -156,13 +157,13 @@ export function CollaborationPanel() {
                       }
                       onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                       placeholder="Room code"
-                      className="flex-1 px-2 py-1 bg-[#2a2a32] border border-gray-600 rounded-md text-white placeholder-gray-500 text-xs focus:outline-none focus:border-indigo-500"
+                      className="flex-1 px-2 py-1 bg-[#2a2a32] border border-gray-600 rounded text-white placeholder-gray-500 text-xs focus:outline-none focus:border-indigo-500"
                       autoFocus
                     />
                     <button
                       onClick={handleJoin}
                       disabled={!joinRoomId.trim()}
-                      className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white rounded-md transition-colors"
+                      className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white rounded transition-colors"
                     >
                       <CheckIcon />
                     </button>
@@ -171,7 +172,7 @@ export function CollaborationPanel() {
                         setShowJoinInput(false);
                         setJoinRoomId("");
                       }}
-                      className="px-2 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors"
+                      className="px-2 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
                     >
                       <XIcon />
                     </button>
@@ -188,18 +189,18 @@ export function CollaborationPanel() {
 
                 {!isConnected && (
                   <p className="text-red-400 text-[10px] text-center">
-                    Connecting to server...
+                    Connecting...
                   </p>
                 )}
               </div>
             ) : (
               // Collaborating - show room info and users
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {/* Room ID */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-500 text-[10px] uppercase tracking-wider">
-                      Room Code
+                      Room
                     </p>
                     <p className="text-white font-mono text-sm font-bold">
                       {roomId}
@@ -207,7 +208,7 @@ export function CollaborationPanel() {
                   </div>
                   <button
                     onClick={handleCopyLink}
-                    className="flex items-center gap-1 px-2 py-1 bg-[#2a2a32] hover:bg-[#3a3a42] text-gray-300 rounded-md text-[10px] transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 bg-[#2a2a32] hover:bg-[#3a3a42] text-gray-300 rounded text-[10px] transition-colors"
                   >
                     {copied ? <CheckIcon /> : <CopyIcon />}
                     {copied ? "Copied!" : "Copy"}
@@ -217,19 +218,19 @@ export function CollaborationPanel() {
                 {/* Users list */}
                 <div>
                   <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">
-                    Participants ({users.length})
+                    Users ({users.length})
                   </p>
-                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                  <div className="space-y-1 max-h-20 overflow-y-auto">
                     {users.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center gap-1.5 px-1.5 py-1 rounded-md bg-[#2a2a32]"
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#2a2a32]"
                       >
                         <span
                           className="w-2 h-2 rounded-full"
                           style={{ backgroundColor: user.color }}
                         />
-                        <span className="text-gray-200 text-xs">
+                        <span className="text-gray-200 text-[10px]">
                           {user.name}
                           {user.id === localUser?.id && (
                             <span className="text-gray-500 ml-1">(you)</span>
@@ -243,15 +244,15 @@ export function CollaborationPanel() {
                 {/* Leave button */}
                 <button
                   onClick={leaveSession}
-                  className="w-full py-1.5 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-md text-xs font-medium transition-colors border border-red-600/30"
+                  className="w-full py-1 px-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded text-xs font-medium transition-colors border border-red-600/30"
                 >
-                  Leave Session
+                  Leave
                 </button>
               </div>
             )}
           </div>
-        )}
-      </div>
-    </div>
+        </>
+      )}
+    </>
   );
 }
