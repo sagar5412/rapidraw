@@ -82,6 +82,22 @@ const OpenIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <line x1="10" y1="11" x2="10" y2="17" />
+    <line x1="14" y1="11" x2="14" y2="17" />
+  </svg>
+);
+
 const isLightColor = (color: string) =>
   LIGHT_COLORS.includes(color.toUpperCase());
 
@@ -107,6 +123,7 @@ export function ScreenSettingsSidebar({
   setShapes,
 }: ScreenSettingsSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [systemPreference, setSystemPreference] = useState<"light" | "dark">(
     "light"
@@ -182,6 +199,22 @@ export function ScreenSettingsSidebar({
     }
   };
 
+  const handleClearCanvas = () => {
+    if (confirmClear) {
+      setShapes([]);
+      setConfirmClear(false);
+      setIsOpen(false);
+      // Also clear localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("rapidraw_canvas");
+      }
+    } else {
+      setConfirmClear(true);
+      // Auto-cancel after 3 seconds
+      setTimeout(() => setConfirmClear(false), 3000);
+    }
+  };
+
   return (
     <>
       {/* Hamburger Menu Button - positioned in top bar */}
@@ -227,6 +260,27 @@ export function ScreenSettingsSidebar({
                   Save
                 </button>
               </div>
+
+              {/* Clear Canvas Button */}
+              <button
+                onClick={handleClearCanvas}
+                disabled={shapes.length === 0}
+                className={`w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded text-[10px] transition-all mt-1 ${
+                  confirmClear
+                    ? "bg-red-600 text-white hover:bg-red-700 animate-pulse"
+                    : shapes.length === 0
+                    ? "bg-gray-800 text-gray-600 cursor-not-allowed"
+                    : "bg-gray-700 text-gray-300 hover:bg-red-600 hover:text-white"
+                }`}
+                title={
+                  confirmClear
+                    ? "Click again to confirm"
+                    : "Clear all shapes from canvas"
+                }
+              >
+                <TrashIcon />
+                {confirmClear ? "Click again to confirm!" : "Clear Canvas"}
+              </button>
             </div>
 
             {/* Separator */}
