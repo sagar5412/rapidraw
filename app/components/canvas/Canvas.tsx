@@ -21,6 +21,7 @@ import { useCollaboration } from "@/app/context/CollaborationContext";
 import { CollaborationPanel } from "@/app/components/ui/CollaborationPanel";
 import { UserCursors } from "@/app/components/canvas/UserCursors";
 import { useFileContext } from "@/app/context/FileContext";
+import { KeyboardShortcutsPanel } from "@/app/components/ui/KeyboardShortcutsPanel";
 
 export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -55,6 +56,7 @@ export function Canvas() {
   const [canvasBackground, setCanvasBackground] = useState("");
   const [screenSettingsOpen, setScreenSettingsOpen] = useState(false);
   const [collabPanelOpen, setCollabPanelOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Collaboration
   const {
@@ -489,6 +491,40 @@ export function Canvas() {
         handleRedo();
       }
 
+      // Tool shortcuts (only when not using Ctrl/Meta)
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        const key = e.key.toLowerCase();
+        switch (key) {
+          case "v":
+            setSelectedTool("select");
+            break;
+          case "r":
+            setSelectedTool("rectangle");
+            break;
+          case "c":
+            setSelectedTool("circle");
+            break;
+          case "d":
+            setSelectedTool("diamond");
+            break;
+          case "l":
+            setSelectedTool("line");
+            break;
+          case "a":
+            setSelectedTool("arrow");
+            break;
+          case "p":
+            setSelectedTool("freehand");
+            break;
+          case "t":
+            setSelectedTool("text");
+            break;
+          case "e":
+            setSelectedTool("eraser");
+            break;
+        }
+      }
+
       // Copy (Ctrl+C)
       if ((e.ctrlKey || e.metaKey) && e.key === "c" && selectedShapeId) {
         e.preventDefault();
@@ -567,6 +603,12 @@ export function Canvas() {
             setTimeout(() => setSaveStatus("idle"), 2000);
           }
         });
+      }
+
+      // Show keyboard shortcuts (?)
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        setShowShortcuts(true);
       }
     };
 
@@ -1124,6 +1166,12 @@ export function Canvas() {
           <span className="text-xs font-medium">Back to Content</span>
         </button>
       )}
+
+      {/* Keyboard Shortcuts Panel */}
+      <KeyboardShortcutsPanel
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
     </div>
   );
 }
