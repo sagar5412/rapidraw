@@ -147,7 +147,7 @@ export function Canvas() {
     ? "#000000"
     : "#FFFFFF";
 
-  const { scale, zoomIn, zoomOut, handleWheelZoom, zoomPercentage } =
+  const { scale, zoomIn, zoomOut, resetZoom, handleWheelZoom, zoomPercentage } =
     useCanvasZoom(1);
 
   // Get bounding box of all shapes
@@ -1034,6 +1034,7 @@ export function Canvas() {
         <ZoomControls
           zoomIn={zoomIn}
           zoomOut={zoomOut}
+          resetZoom={resetZoom}
           zoomPercentage={zoomPercentage}
         />
         <div className="w-px h-4 bg-gray-600 mx-0.5"></div>

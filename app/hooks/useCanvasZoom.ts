@@ -8,6 +8,7 @@ interface UseCanvasZoomReturn {
   scale: number;
   zoomIn: () => void;
   zoomOut: () => void;
+  resetZoom: () => void;
   setZoom: (scale: number) => void;
   handleWheelZoom: (deltaY: number, ctrlKey: boolean) => void;
   zoomPercentage: number;
@@ -27,6 +28,10 @@ export function useCanvasZoom(initialScale = 1): UseCanvasZoomReturn {
   const zoomOut = useCallback(() => {
     setScale((prev) => clampScale(prev * (1 - ZOOM_STEP)));
   }, [clampScale]);
+
+  const resetZoom = useCallback(() => {
+    setScale(1);
+  }, []);
 
   const setZoom = useCallback(
     (newScale: number) => {
@@ -52,6 +57,7 @@ export function useCanvasZoom(initialScale = 1): UseCanvasZoomReturn {
     scale,
     zoomIn,
     zoomOut,
+    resetZoom,
     setZoom,
     handleWheelZoom,
     zoomPercentage,

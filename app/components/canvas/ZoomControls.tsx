@@ -3,14 +3,18 @@
 interface ZoomControlsProps {
   zoomIn: () => void;
   zoomOut: () => void;
+  resetZoom: () => void;
   zoomPercentage: number;
 }
 
 export function ZoomControls({
   zoomIn,
   zoomOut,
+  resetZoom,
   zoomPercentage,
 }: ZoomControlsProps) {
+  const isNotDefault = zoomPercentage !== 100;
+
   return (
     <>
       <button
@@ -20,9 +24,18 @@ export function ZoomControls({
       >
         −
       </button>
-      <div className="w-10 text-center text-white text-xs font-medium">
+      <button
+        onClick={resetZoom}
+        className={`w-12 text-center text-xs font-medium rounded transition-colors ${
+          isNotDefault
+            ? "text-indigo-400 hover:bg-[#403E6A] cursor-pointer"
+            : "text-white cursor-default"
+        }`}
+        title={isNotDefault ? "Reset to 100%" : "Zoom: 100%"}
+        disabled={!isNotDefault}
+      >
         {zoomPercentage}%
-      </div>
+      </button>
       <button
         onClick={zoomIn}
         className="w-7 h-7 flex items-center justify-center text-white text-base font-bold hover:bg-[#403E6A] rounded-md transition-colors"
