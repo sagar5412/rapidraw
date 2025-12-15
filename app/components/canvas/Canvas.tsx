@@ -966,6 +966,7 @@ export function Canvas() {
           setCanvasBackground={setCanvasBackground}
           shapes={shapes}
           setShapes={setShapes}
+          onShowShortcuts={() => setShowShortcuts(true)}
         />
 
         {/* Center - Toolbar */}
