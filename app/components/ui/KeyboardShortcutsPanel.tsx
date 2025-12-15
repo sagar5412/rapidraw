@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface KeyboardShortcutsPanelProps {
   isOpen: boolean;
@@ -68,10 +68,29 @@ const KeyIcon = ({ char }: { char: string }) => (
   </span>
 );
 
+// Custom scrollbar styles
+const scrollbarStyles = `
+  .shortcuts-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .shortcuts-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .shortcuts-scrollbar::-webkit-scrollbar-thumb {
+    background: #4B5563;
+    border-radius: 3px;
+  }
+  .shortcuts-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #6B7280;
+  }
+`;
+
 export function KeyboardShortcutsPanel({
   isOpen,
   onClose,
 }: KeyboardShortcutsPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,15 +102,47 @@ export function KeyboardShortcutsPanel({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Prevent scroll from propagating to canvas
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Stop the event from reaching the canvas
+      e.stopPropagation();
+    };
+
+    const panel = panelRef.current;
+    if (panel) {
+      panel.addEventListener("wheel", handleWheel, { passive: false });
+    }
+
+    return () => {
+      if (panel) {
+        panel.removeEventListener("wheel", handleWheel);
+      }
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <>
+      {/* Inject scrollbar styles */}
+      <style>{scrollbarStyles}</style>
+
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-black/50 z-[100]"
+        onClick={onClose}
+        onWheel={(e) => e.stopPropagation()}
+      />
 
       {/* Panel */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] max-h-[80vh] bg-[#1E1E24] rounded-xl shadow-2xl border border-gray-700/50 z-50 overflow-hidden">
+      <div
+        ref={panelRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] max-h-[80vh] bg-[#1E1E24] rounded-xl shadow-2xl border border-gray-700/50 z-[100] overflow-hidden"
+        onWheel={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
           <h2 className="text-white text-sm font-semibold">
@@ -115,8 +166,8 @@ export function KeyboardShortcutsPanel({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-4 overflow-y-auto max-h-[calc(80vh-60px)]">
+        {/* Content with custom scrollbar */}
+        <div className="p-4 overflow-y-auto max-h-[calc(80vh-100px)] shortcuts-scrollbar">
           {SHORTCUTS.map((section, idx) => (
             <div key={section.title} className={idx > 0 ? "mt-4" : ""}>
               <h3 className="text-gray-500 text-[10px] uppercase tracking-wider mb-2">
