@@ -4,6 +4,8 @@ import { Shape } from "@/app/types/Shapes";
 import {
   downloadRapidrawFile,
   openRapidrawFile,
+  exportCanvasAsPng,
+  exportShapesAsSvg,
 } from "@/app/types/RapidrawFile";
 
 interface ScreenSettingsSidebarProps {
@@ -14,6 +16,7 @@ interface ScreenSettingsSidebarProps {
   shapes: Shape[];
   setShapes: React.Dispatch<React.SetStateAction<Shape[]>>;
   onShowShortcuts?: () => void;
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
 // Light background presets (for light theme) - 5 colors
@@ -194,6 +197,7 @@ export function ScreenSettingsSidebar({
   shapes,
   setShapes,
   onShowShortcuts,
+  canvasRef,
 }: ScreenSettingsSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -201,6 +205,21 @@ export function ScreenSettingsSidebar({
   const [systemPreference, setSystemPreference] = useState<"light" | "dark">(
     "light"
   );
+
+  // Export handlers
+  const handleExportPng = () => {
+    if (canvasRef?.current) {
+      exportCanvasAsPng(canvasRef.current, `rapidraw-${Date.now()}`);
+      setIsOpen(false);
+    }
+  };
+
+  const handleExportSvg = () => {
+    if (shapes.length > 0) {
+      exportShapesAsSvg(shapes, canvasBackground, `rapidraw-${Date.now()}`);
+      setIsOpen(false);
+    }
+  };
 
   // Detect system preference on mount and listen for changes
   useEffect(() => {
@@ -320,6 +339,60 @@ export function ScreenSettingsSidebar({
               >
                 <SaveIcon />
                 Save to
+              </button>
+
+              {/* Export PNG */}
+              <button
+                onClick={handleExportPng}
+                disabled={shapes.length === 0}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors cursor-pointer rounded ${
+                  shapes.length === 0
+                    ? "text-gray-600 cursor-not-allowed"
+                    : "text-gray-300 hover:bg-gray-700/50"
+                }`}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export as PNG
+              </button>
+
+              {/* Export SVG */}
+              <button
+                onClick={handleExportSvg}
+                disabled={shapes.length === 0}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors cursor-pointer rounded ${
+                  shapes.length === 0
+                    ? "text-gray-600 cursor-not-allowed"
+                    : "text-gray-300 hover:bg-gray-700/50"
+                }`}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export as SVG
               </button>
 
               {/* Reset Canvas */}

@@ -276,3 +276,142 @@ export function exportCanvasAsPng(
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Export shapes as SVG
+ */
+export function exportShapesAsSvg(
+  shapes: Shape[],
+  background: string,
+  filename: string = "rapidraw-export"
+): void {
+  if (shapes.length === 0) {
+    console.warn("No shapes to export");
+    return;
+  }
+
+  // Calculate bounding box with padding
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+
+  for (const shape of shapes) {
+    if (
+      shape.type === "rectangle" ||
+      shape.type === "diamond" ||
+      shape.type === "textbox"
+    ) {
+      minX = Math.min(minX, shape.x);
+      minY = Math.min(minY, shape.y);
+      maxX = Math.max(maxX, shape.x + shape.width);
+      maxY = Math.max(maxY, shape.y + shape.height);
+    } else if (shape.type === "circle") {
+      minX = Math.min(minX, shape.x);
+      minY = Math.min(minY, shape.y);
+      maxX = Math.max(maxX, shape.x + shape.radius * 2);
+      maxY = Math.max(maxY, shape.y + shape.radius * 2);
+    } else if (shape.type === "line" || shape.type === "arrow") {
+      minX = Math.min(minX, shape.x1, shape.x2);
+      minY = Math.min(minY, shape.y1, shape.y2);
+      maxX = Math.max(maxX, shape.x1, shape.x2);
+      maxY = Math.max(maxY, shape.y1, shape.y2);
+    } else if (shape.type === "freehand" && shape.points.length > 0) {
+      for (const p of shape.points) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+      }
+    }
+  }
+
+  const padding = 20;
+  const width = maxX - minX + padding * 2;
+  const height = maxY - minY + padding * 2;
+  const offsetX = -minX + padding;
+  const offsetY = -minY + padding;
+
+  // Build SVG content
+  let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect width="100%" height="100%" fill="${background}"/>
+  <g transform="translate(${offsetX}, ${offsetY})">
+`;
+
+  for (const shape of shapes) {
+    // Access color using 'in' operator to handle textbox which doesn't have color
+    const stroke =
+      "color" in shape ? shape.color : shape.strokeColor || "#000000";
+    const strokeWidth = shape.strokeWidth || 2;
+    const fill = shape.fillColor || "none";
+
+    if (shape.type === "rectangle") {
+      svgContent += `    <rect x="${shape.x}" y="${shape.y}" width="${shape.width}" height="${shape.height}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>\n`;
+    } else if (shape.type === "circle") {
+      const cx = shape.x + shape.radius;
+      const cy = shape.y + shape.radius;
+      svgContent += `    <circle cx="${cx}" cy="${cy}" r="${shape.radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>\n`;
+    } else if (shape.type === "diamond") {
+      const cx = shape.x + shape.width / 2;
+      const cy = shape.y + shape.height / 2;
+      const points = `${cx},${shape.y} ${shape.x + shape.width},${cy} ${cx},${
+        shape.y + shape.height
+      } ${shape.x},${cy}`;
+      svgContent += `    <polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>\n`;
+    } else if (shape.type === "line") {
+      svgContent += `    <line x1="${shape.x1}" y1="${shape.y1}" x2="${shape.x2}" y2="${shape.y2}" stroke="${stroke}" stroke-width="${strokeWidth}"/>\n`;
+    } else if (shape.type === "arrow") {
+      const angle = Math.atan2(shape.y2 - shape.y1, shape.x2 - shape.x1);
+      const arrowLength = 12;
+      const arrowAngle = Math.PI / 6;
+      const x3 = shape.x2 - arrowLength * Math.cos(angle - arrowAngle);
+      const y3 = shape.y2 - arrowLength * Math.sin(angle - arrowAngle);
+      const x4 = shape.x2 - arrowLength * Math.cos(angle + arrowAngle);
+      const y4 = shape.y2 - arrowLength * Math.sin(angle + arrowAngle);
+      svgContent += `    <line x1="${shape.x1}" y1="${shape.y1}" x2="${shape.x2}" y2="${shape.y2}" stroke="${stroke}" stroke-width="${strokeWidth}"/>\n`;
+      svgContent += `    <polygon points="${shape.x2},${shape.y2} ${x3},${y3} ${x4},${y4}" fill="${stroke}"/>\n`;
+    } else if (shape.type === "freehand" && shape.points.length > 1) {
+      const pathData = shape.points
+        .map((p, i) => (i === 0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`))
+        .join(" ");
+      svgContent += `    <path d="${pathData}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>\n`;
+    } else if (shape.type === "textbox") {
+      const fontSize = shape.fontSize || 16;
+      const fontFamily = shape.fontFamily || "Arial";
+      // Extract plain text from HTML content
+      const plainText = shape.htmlContent?.replace(/<[^>]*>/g, "") || "";
+      svgContent += `    <text x="${shape.x}" y="${
+        shape.y + fontSize
+      }" font-family="${fontFamily}" font-size="${fontSize}" fill="${stroke}">${escapeXml(
+        plainText
+      )}</text>\n`;
+    }
+  }
+
+  svgContent += `  </g>
+</svg>`;
+
+  // Download SVG
+  const blob = new Blob([svgContent], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.download = `${filename}.svg`;
+  link.href = url;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Escape XML special characters
+ */
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
