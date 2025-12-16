@@ -15,6 +15,8 @@ type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 interface UseWebSocketReturn {
   socket: TypedSocket | null;
   isConnected: boolean;
+  isReconnecting: boolean;
+  connectionError: string | null;
   roomId: string | null;
   users: CollaborationUser[];
   localUser: CollaborationUser | null;
@@ -39,6 +41,7 @@ interface UseWebSocketOptions {
   onShapeUpdated?: (data: { shapeId: string; updates: Partial<Shape> }) => void;
   onShapeDeleted?: (shapeId: string) => void;
   onShapesSynced?: (shapes: Shape[]) => void;
+  onConnectionError?: (error: string) => void;
 }
 
 export function useWebSocket(
@@ -46,6 +49,8 @@ export function useWebSocket(
 ): UseWebSocketReturn {
   const socketRef = useRef<TypedSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [users, setUsers] = useState<CollaborationUser[]>([]);
   const [localUser, setLocalUser] = useState<CollaborationUser | null>(null);
@@ -55,13 +60,20 @@ export function useWebSocket(
   optionsRef.current = options;
 
   useEffect(() => {
+    // Get WebSocket server URL from environment or use relative path for local dev
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "";
+    const wsPath = wsUrl ? "/socket.io" : "/api/socket";
+
+    console.log("Connecting to WebSocket:", wsUrl || "local", "path:", wsPath);
+
     // Initialize socket connection
-    const socket: TypedSocket = io({
-      path: "/api/socket",
+    const socket: TypedSocket = io(wsUrl, {
+      path: wsPath,
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      transports: ["websocket", "polling"],
     });
 
     socketRef.current = socket;
@@ -69,13 +81,51 @@ export function useWebSocket(
     socket.on("connect", () => {
       console.log("WebSocket connected:", socket.id);
       setIsConnected(true);
+      setIsReconnecting(false);
+      setConnectionError(null);
     });
 
-    socket.on("disconnect", () => {
-      console.log("WebSocket disconnected");
+    socket.on("disconnect", (reason) => {
+      console.log("WebSocket disconnected:", reason);
       setIsConnected(false);
       setRoomId(null);
       setUsers([]);
+    });
+
+    // Handle connection errors
+    socket.on("connect_error", (error) => {
+      console.error("WebSocket connection error:", error.message);
+      setConnectionError(error.message);
+      setIsConnected(false);
+      optionsRef.current.onConnectionError?.(error.message);
+    });
+
+    // Handle server-sent errors
+    socket.on("error", (message: string) => {
+      console.error("WebSocket server error:", message);
+      setConnectionError(message);
+      optionsRef.current.onConnectionError?.(message);
+    });
+
+    // Handle reconnection attempts
+    socket.io.on("reconnect_attempt", (attempt) => {
+      console.log(`WebSocket reconnection attempt ${attempt}`);
+      setIsReconnecting(true);
+      setConnectionError(`Reconnecting... (attempt ${attempt})`);
+    });
+
+    socket.io.on("reconnect", () => {
+      console.log("WebSocket reconnected");
+      setIsReconnecting(false);
+      setConnectionError(null);
+    });
+
+    socket.io.on("reconnect_failed", () => {
+      console.error("WebSocket reconnection failed after all attempts");
+      setIsReconnecting(false);
+      setConnectionError(
+        "Connection failed. Please check your network and try again."
+      );
     });
 
     socket.on("room_state", (state: RoomState) => {
@@ -195,6 +245,8 @@ export function useWebSocket(
   return {
     socket: socketRef.current,
     isConnected,
+    isReconnecting,
+    connectionError,
     roomId,
     users,
     localUser,

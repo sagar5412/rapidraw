@@ -569,25 +569,28 @@ export function parseSvgContent(svgContent: string): Shape[] {
     const offsetY = 100 - (isFinite(minY) ? minY : 0);
 
     for (const shape of shapes) {
-      if ("x" in shape && typeof shape.x === "number") {
-        (shape as any).x += offsetX;
-      }
-      if ("y" in shape && typeof shape.y === "number") {
-        (shape as any).y += offsetY;
-      }
-      if ("x1" in shape && typeof shape.x1 === "number") {
-        (shape as any).x1 += offsetX;
-        (shape as any).x2 += offsetX;
-      }
-      if ("y1" in shape && typeof shape.y1 === "number") {
-        (shape as any).y1 += offsetY;
-        (shape as any).y2 += offsetY;
-      }
-      if ("points" in shape && Array.isArray(shape.points)) {
-        for (const p of shape.points) {
-          p.x += offsetX;
-          p.y += offsetY;
-        }
+      // Use switch on type for proper type narrowing
+      switch (shape.type) {
+        case "rectangle":
+        case "diamond":
+        case "circle":
+        case "textbox":
+          shape.x += offsetX;
+          shape.y += offsetY;
+          break;
+        case "line":
+        case "arrow":
+          shape.x1 += offsetX;
+          shape.y1 += offsetY;
+          shape.x2 += offsetX;
+          shape.y2 += offsetY;
+          break;
+        case "freehand":
+          for (const p of shape.points) {
+            p.x += offsetX;
+            p.y += offsetY;
+          }
+          break;
       }
     }
   }

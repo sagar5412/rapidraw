@@ -22,6 +22,9 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl);
   });
 
+  // Configure CORS origins
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || "*";
+
   const io = new Server<
     ClientToServerEvents,
     ServerToClientEvents,
@@ -29,7 +32,7 @@ app.prepare().then(() => {
     SocketData
   >(httpServer, {
     cors: {
-      origin: "*",
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
     },
     path: "/api/socket",

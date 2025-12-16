@@ -10,8 +10,12 @@ interface Room {
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
+  private cleanupTimers: Map<string, NodeJS.Timeout> = new Map();
 
   createRoom(roomId: string, hostUser: CollaborationUser): Room {
+    // Cancel any pending cleanup timer
+    this.cancelCleanupTimer(roomId);
+
     const room: Room = {
       id: roomId,
       users: new Map([[hostUser.id, hostUser]]),
@@ -23,6 +27,9 @@ export class RoomManager {
   }
 
   joinRoom(roomId: string, user: CollaborationUser): Room | null {
+    // Cancel any pending cleanup timer when someone joins
+    this.cancelCleanupTimer(roomId);
+
     const room = this.rooms.get(roomId);
     if (!room) {
       // Create room if it doesn't exist
@@ -38,14 +45,33 @@ export class RoomManager {
 
     room.users.delete(userId);
 
-    // Clean up empty rooms after a delay
+    // Schedule cleanup for empty rooms
     if (room.users.size === 0) {
-      setTimeout(() => {
-        const currentRoom = this.rooms.get(roomId);
-        if (currentRoom && currentRoom.users.size === 0) {
-          this.rooms.delete(roomId);
-        }
-      }, 60000); // Keep room for 1 minute after last user leaves
+      this.scheduleCleanup(roomId);
+    }
+  }
+
+  private scheduleCleanup(roomId: string): void {
+    // Cancel existing timer if any
+    this.cancelCleanupTimer(roomId);
+
+    // Schedule new cleanup
+    const timer = setTimeout(() => {
+      const currentRoom = this.rooms.get(roomId);
+      if (currentRoom && currentRoom.users.size === 0) {
+        this.rooms.delete(roomId);
+        this.cleanupTimers.delete(roomId);
+      }
+    }, 60000); // Keep room for 1 minute after last user leaves
+
+    this.cleanupTimers.set(roomId, timer);
+  }
+
+  private cancelCleanupTimer(roomId: string): void {
+    const timer = this.cleanupTimers.get(roomId);
+    if (timer) {
+      clearTimeout(timer);
+      this.cleanupTimers.delete(roomId);
     }
   }
 
