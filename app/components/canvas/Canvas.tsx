@@ -62,6 +62,7 @@ export function Canvas() {
   const {
     isConnected,
     isCollaborating,
+    roomId,
     emitShapeAdd,
     emitShapeUpdate,
     emitShapeDelete,
@@ -80,8 +81,58 @@ export function Canvas() {
     "idle"
   );
 
-  // LocalStorage key for auto-save
-  const STORAGE_KEY = "rapidraw_canvas";
+  // LocalStorage keys
+  const STORAGE_KEY = "rapidraw_canvas"; // Main local canvas
+  const BACKUP_KEY = "rapidraw_canvas_backup"; // Backup before joining session
+  const SESSION_KEY = "rapidraw_session_canvas"; // Current session canvas
+
+  // Helper to get current canvas data
+  const getCanvasData = useCallback(() => {
+    return {
+      shapes,
+      background: canvasBackground,
+      theme,
+      savedAt: new Date().toISOString(),
+    };
+  }, [shapes, canvasBackground, theme]);
+
+  // Save local canvas to backup before joining session
+  const backupLocalCanvas = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const data = getCanvasData();
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(data));
+      console.log("Local canvas backed up");
+    } catch (error) {
+      console.error("Failed to backup canvas:", error);
+    }
+  }, [getCanvasData]);
+
+  // Restore local canvas from backup after leaving session
+  const restoreLocalCanvas = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const backup = localStorage.getItem(BACKUP_KEY);
+      if (backup) {
+        const data = JSON.parse(backup);
+        if (data.shapes && Array.isArray(data.shapes)) {
+          setShapes(data.shapes);
+        }
+        if (data.background) {
+          setCanvasBackground(data.background);
+        }
+        if (data.theme) {
+          setTheme(data.theme);
+        }
+        // Clear session canvas and restore main canvas
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.setItem(STORAGE_KEY, backup);
+        console.log("Local canvas restored from backup");
+      }
+    } catch (error) {
+      console.error("Failed to restore canvas:", error);
+    }
+  }, [setShapes, setCanvasBackground, setTheme]);
 
   // Load from localStorage on initial mount
   useEffect(() => {
@@ -119,14 +170,27 @@ export function Canvas() {
           theme,
           savedAt: new Date().toISOString(),
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        // Save to different storage based on collaboration state
+        if (isCollaborating) {
+          // Save session canvas separately
+          localStorage.setItem(
+            SESSION_KEY,
+            JSON.stringify({
+              ...data,
+              roomId: roomId,
+            })
+          );
+        } else {
+          // Save local canvas
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
       } catch (error) {
         console.error("Failed to save to localStorage:", error);
       }
     }, 500); // Debounce saves
 
     return () => clearTimeout(saveTimeout);
-  }, [shapes, canvasBackground, theme]);
+  }, [shapes, canvasBackground, theme, isCollaborating, roomId]);
 
   // Track if update is from remote to prevent re-emission
   const isRemoteUpdateRef = useRef(false);
@@ -384,10 +448,29 @@ export function Canvas() {
 
     // Handle room state (initial sync)
     setOnRoomState((state) => {
+      // Backup current local canvas before loading session
+      backupLocalCanvas();
+
+      // Clear canvas and load session shapes
+      isRemoteUpdateRef.current = true;
       if (state.shapes.length > 0) {
-        isRemoteUpdateRef.current = true;
         setShapes(state.shapes);
-        isRemoteUpdateRef.current = false;
+      } else {
+        // Clear canvas for fresh session
+        setShapes([]);
+      }
+      isRemoteUpdateRef.current = false;
+
+      // Save session canvas to separate storage
+      try {
+        const sessionData = {
+          roomId: state.roomId,
+          shapes: state.shapes,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+      } catch (error) {
+        console.error("Failed to save session canvas:", error);
       }
     });
 
@@ -412,7 +495,19 @@ export function Canvas() {
     setOnRemoteShapesSync,
     setOnRoomState,
     setShapes,
+    backupLocalCanvas,
   ]);
+
+  // Restore local canvas when leaving a session
+  const wasCollaboratingRef = useRef(isCollaborating);
+  useEffect(() => {
+    // Detect when we stop collaborating
+    if (wasCollaboratingRef.current && !isCollaborating) {
+      console.log("Left collaboration session, restoring local canvas");
+      restoreLocalCanvas();
+    }
+    wasCollaboratingRef.current = isCollaborating;
+  }, [isCollaborating, restoreLocalCanvas]);
 
   // Wrapper functions for undo/redo with collaboration sync
   const handleUndo = useCallback(() => {
